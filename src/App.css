@@ -1,0 +1,152 @@
+#root {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* 主题颜色 */
+:root {
+  --primary-color: #1677ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #ff4d4f;
+  --bg-color: #f5f7fa;
+  --text-color: rgba(0, 0, 0, 0.88);
+  --text-color-secondary: rgba(0, 0, 0, 0.45);
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 卡片样式 */
+.custom-card {
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: all 0.3s;
+}
+
+.custom-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* 加载动画 */
+.custom-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 1200px) {
+  .trip-plan-result .ant-descriptions-item {
+    padding: 12px 8px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  #root {
+    padding: 0.5rem;
+  }
+  
+  .trip-plan-result .ant-row {
+    margin: 0 !important;
+  }
+  
+  .trip-plan-result .ant-col {
+    padding: 8px !important;
+  }
+  
+  .ant-space {
+    flex-wrap: wrap;
+  }
+  
+  .ant-descriptions {
+    overflow-x: auto;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .trip-input-form-card {
+    box-shadow: none;
+    border-radius: 0;
+  }
+  
+  .ant-card-body {
+    padding: 12px !important;
+  }
+  
+  .ant-tabs-nav {
+    margin-bottom: 12px !important;
+  }
+  
+  .ant-tabs-tab {
+    padding: 6px 10px !important;
+    margin: 0 2px !important;
+  }
+  
+  .trip-plan-result .ant-list-item {
+    padding: 12px 8px;
+  }
+
+  .trip-plan-result .ant-card-body {
+    padding: 12px 8px !important;
+  }
+}
