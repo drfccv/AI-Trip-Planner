@@ -4,9 +4,9 @@ import { TripFormData, DeepseekResponse, WeatherInfo, TripPlan } from '../types'
 import { mockWeatherInfo, mockTripPlan } from '../utils/mockData';
 
 // 是否使用模拟数据（开发环境下可以设置为true）
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true;
 // 是否在错误时回退到模拟数据（生产环境推荐设置为false）
-const USE_FALLBACK_DATA = false;
+const USE_FALLBACK_DATA = true;
 
 // 设置API请求的超时时间（毫秒）
 const API_TIMEOUT = 120000; // 增加到2分钟
