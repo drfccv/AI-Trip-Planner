@@ -4,7 +4,7 @@
 
 一个基于人工智能的旅行规划助手，利用大语言模型和高德地图API为用户定制个性化的旅行计划。
 
-📝 **[在线体验 Demo](http://example.com)**
+📝 **[在线体验 Demo](https://drfccv.github.io/AI-Trip-Planner/)**
 
 ## ✨ 功能特点
 
