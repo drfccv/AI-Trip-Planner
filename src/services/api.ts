@@ -1,12 +1,14 @@
 import axios from 'axios';
 import { ENV } from '../env';
-import { TripFormData, DeepseekResponse, WeatherInfo, TripPlan } from '../types';
+import { TripFormData, DeepseekResponse, WeatherInfo, DayPlan, Meal } from '../types';
 import { mockWeatherInfo, mockTripPlan } from '../utils/mockData';
 
 // 是否使用模拟数据（开发环境下可以设置为true）
-const USE_MOCK_DATA = false;
+const USE_MOCK_DATA = true;
 // 是否在错误时回退到模拟数据（生产环境推荐设置为false）
 const USE_FALLBACK_DATA = false;
+// 启用控制台显示
+const ENABLE_CONSOLE_LOG = false;
 
 // 设置API请求的超时时间（毫秒）
 const API_TIMEOUT = 120000; // 增加到2分钟
@@ -20,192 +22,22 @@ const RETRY_DELAY = 2000;
 // POI缓存，用于存储已查询过的景点信息，降低API调用消耗
 const poiCache: Record<string, any> = {};
 
-// 增加一个清理JSON字符串的辅助函数
-function sanitizeJsonString(jsonStr: string): string {
-  try {
-    // 尝试检测并修复未终止的字符串
-    let modifiedStr = jsonStr;
-    
-    // 处理格式错误的对象属性结构（如示例中的错误）
-    modifiedStr = modifiedStr.replace(/,\s*"visitDuration"\s*:([^,}]*)[,}]/g, ',"visitDuration": $1}');
-    
-    // 修复API常见的格式错误
-    modifiedStr = modifiedStr.replace(/([0-9])\s*,\s*"visitDuration"\s*:([^,}]*)[,}]/g, '$1},"visitDuration": $2}');
-    
-    // 修复错误的JSON嵌套
-    modifiedStr = modifiedStr.replace(/}\s*,\s*"visitDuration"\s*:/g, '},"visitDuration":');
-    
-    // 检查是否存在未闭合的引号
-    const matches = modifiedStr.match(/(?<!\\)"([^"]*?)(?:\n|$)/g);
-    if (matches) {
-      // 修复未闭合的引号
-      for (const match of matches) {
-        if (!match.endsWith('",\n') && !match.endsWith('"\n') && !match.endsWith('",') && !match.endsWith('"')) {
-          const fixedMatch = match.replace(/(\n|$)/, '"\n');
-          modifiedStr = modifiedStr.replace(match, fixedMatch);
-        }
-      }
-    }
-    
-    // 删除控制字符
-    modifiedStr = modifiedStr.replace(/[\x00-\x1F\x7F]/g, '');
-    
-    // 替换错误格式的JSON属性格式
-    modifiedStr = modifiedStr.replace(/\"\"\t\t:\"\"/g, '"type": "');
-    modifiedStr = modifiedStr.replace(/\t\t\"\"\t\t/g, '",');
-
-    // 修复缺少逗号的对象属性
-    modifiedStr = modifiedStr.replace(/(\s*"[^"]+"\s*:\s*"[^"]+"\s*)(?="[^"]+")/g, '$1,');
-    
-    // 删除末尾未闭合的括号或逗号
-    modifiedStr = modifiedStr.replace(/,(\s*)([\]}])/g, '$1$2');
-    
-    // 确保outermost对象被正确闭合
-    let openBraces = 0;
-    let openBrackets = 0;
-    
-    for (let i = 0; i < modifiedStr.length; i++) {
-      if (modifiedStr[i] === '{') openBraces++;
-      else if (modifiedStr[i] === '}') openBraces--;
-      else if (modifiedStr[i] === '[') openBrackets++;
-      else if (modifiedStr[i] === ']') openBrackets--;
-    }
-    
-    // 添加缺失的闭合括号
-    while (openBraces > 0) {
-      modifiedStr += '}';
-      openBraces--;
-    }
-    
-    while (openBrackets > 0) {
-      modifiedStr += ']';
-      openBrackets--;
-    }
-    
-    return modifiedStr;
-  } catch (e) {
-    console.error('清理JSON字符串时出错:', e);
-    return jsonStr; // 出错时返回原始字符串
+// 添加自定义日志函数
+function log(...args: any[]): void {
+  if (ENABLE_CONSOLE_LOG) {
+    console.log(...args);
   }
 }
 
-// 新增一个专门解析API返回格式的函数
-function repairDeepseekApiResponse(content: string): string {
-  try {
-    // 提取JSON部分
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return content;
-    
-    let jsonContent = jsonMatch[0];
-    
-    // 修复常见的格式错误
-    jsonContent = jsonContent.replace(/([0-9])\s*,\s*("visitDuration"|"longitude"|"latitude")\s*:/g, '$1},$2:');
-    
-    // 修复API返回的特定格式问题
-    jsonContent = jsonContent.replace(/\t/g, ' ');  // 替换制表符
-    jsonContent = jsonContent.replace(/\\t/g, ' '); // 替换转义的制表符
-    
-    // 修复引号问题
-    jsonContent = jsonContent.replace(/"([^"]*)\\"/g, '"$1"');
-    jsonContent = jsonContent.replace(/\\"/g, '"');
-    
-    // 修复未闭合的对象
-    jsonContent = jsonContent.replace(/("name"\s*:\s*"[^"]*",\s*"description"\s*:\s*"[^"]*"[^}]*$)/g, '$1}');
-    
-    // 修复meals数组
-    jsonContent = jsonContent.replace(/("meals"\s*:\s*\[\s*\{[^]*?)(\],\s*"transportation")/g, (match, p1, p2) => {
-      if (!p1.endsWith('}')) {
-        return p1 + '}' + p2;
-      }
-      return match;
-    });
-    
-    // 修复attractions数组
-    jsonContent = jsonContent.replace(/("attractions"\s*:\s*\[\s*\{[^]*?)(\],\s*"meals")/g, (match, p1, p2) => {
-      if (!p1.endsWith('}')) {
-        return p1 + '}' + p2;
-      }
-      return match;
-    });
-    
-    // 尝试修复days数组
-    jsonContent = jsonContent.replace(/("days"\s*:\s*\[\s*\{[^]*?)(\],\s*"overallSuggestions")/g, (match, p1, p2) => {
-      if (!p1.endsWith('}')) {
-        return p1 + '}' + p2;
-      }
-      return match;
-    });
-    
-    // 修复错误的JSON嵌套结构
-    const nestedJsonFix = (json: string) => {
-      const stack: string[] = [];
-      let result = '';
-      let inString = false;
-      let escapeNext = false;
-      
-      for (let i = 0; i < json.length; i++) {
-        const char = json[i];
-        
-        if (escapeNext) {
-          escapeNext = false;
-          result += char;
-          continue;
-        }
-        
-        if (char === '\\') {
-          escapeNext = true;
-          result += char;
-          continue;
-        }
-        
-        if (char === '"' && !escapeNext) {
-          inString = !inString;
-        }
-        
-        if (!inString) {
-          if (char === '{' || char === '[') {
-            stack.push(char);
-          } else if (char === '}') {
-            if (stack[stack.length - 1] === '{') {
-              stack.pop();
-            } else if (stack[stack.length - 1] === '[') {
-              // 修复错误的JSON嵌套
-              result += ']';
-              stack.pop();
-              i--; // 重新处理当前字符
-              continue;
-            }
-          } else if (char === ']') {
-            if (stack[stack.length - 1] === '[') {
-              stack.pop();
-            } else if (stack[stack.length - 1] === '{') {
-              // 修复错误的JSON嵌套
-              result += '}';
-              stack.pop();
-              i--; // 重新处理当前字符
-              continue;
-            }
-          }
-        }
-        
-        result += char;
-      }
-      
-      // 添加缺失的闭合括号
-      while (stack.length > 0) {
-        const opener = stack.pop();
-        result += opener === '{' ? '}' : ']';
-      }
-      
-      return result;
-    };
-    
-    jsonContent = nestedJsonFix(jsonContent);
-    
-    return jsonContent;
-  } catch (e) {
-    console.error('修复API响应时出错:', e);
-    return content;
+function warn(...args: any[]): void {
+  if (ENABLE_CONSOLE_LOG) {
+    console.warn(...args);
+  }
+}
+
+function error(...args: any[]): void {
+  if (ENABLE_CONSOLE_LOG) {
+    console.error(...args);
   }
 }
 
@@ -213,7 +45,7 @@ function repairDeepseekApiResponse(content: string): string {
 function standardizeTripPlanFormat(responseData: any, formData: TripFormData): any {
   // 检查是否有travel_plan字段（API可能返回这种格式而不是tripPlan）
   if (responseData.travel_plan && !responseData.tripPlan) {
-    console.log('检测到travel_plan格式的API响应，将转换为tripPlan格式');
+    log('检测到travel_plan格式的API响应，将转换为tripPlan格式');
     
     const travelPlan = responseData.travel_plan;
     
@@ -303,7 +135,7 @@ function standardizeTripPlanFormat(responseData: any, formData: TripFormData): a
         
         // 确保每天至少有3餐
         const mealTypes = ['breakfast', 'lunch', 'dinner'];
-        const existingTypes = standardDay.meals.map(meal => meal.type);
+        const existingTypes = standardDay.meals.map((meal: Meal) => meal.type);
         
         mealTypes.forEach(type => {
           if (!existingTypes.includes(type as any)) {
@@ -343,7 +175,7 @@ function parseDeepseekResponse(responseData: any): any {
         const parsedData = JSON.parse(content);
         return parsedData;
       } catch (directParseError) {
-        console.error('直接解析API响应内容失败:', directParseError);
+        error('直接解析API响应内容失败:', directParseError);
         
         // 预处理JSON文本 - 去除可能导致解析失败的字符
         const cleanedContent = content
@@ -361,7 +193,7 @@ function parseDeepseekResponse(responseData: any): any {
         try {
           return JSON.parse(cleanedContent);
         } catch (cleanParseError) {
-          console.error('清理后解析API响应内容失败:', cleanParseError);
+          error('清理后解析API响应内容失败:', cleanParseError);
           
           // 尝试提取JSON部分
           const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -369,7 +201,7 @@ function parseDeepseekResponse(responseData: any): any {
             try {
               return JSON.parse(jsonMatch[0]);
             } catch (matchError) {
-              console.error('提取JSON部分后解析失败:', matchError);
+              error('提取JSON部分后解析失败:', matchError);
             }
           }
           
@@ -383,7 +215,7 @@ function parseDeepseekResponse(responseData: any): any {
           try {
             return JSON.parse(fixedContent);
           } catch (finalError) {
-            console.error('所有修复方法都失败:', finalError);
+            error('所有修复方法都失败:', finalError);
             throw new Error('无法解析API返回的JSON数据');
           }
         }
@@ -391,16 +223,16 @@ function parseDeepseekResponse(responseData: any): any {
     }
     
     throw new Error('API响应格式不符合预期');
-  } catch (error) {
-    console.error('解析DeepSeek API响应失败:', error);
-    throw error;
+  } catch (err) {
+    error('解析DeepSeek API响应失败:', err);
+    throw err;
   }
 }
 
 // 处理高德地图天气API返回的数据
 export function processWeatherData(data: any): WeatherInfo[] {
   if (!data || !Array.isArray(data)) {
-    console.warn('天气数据格式不正确:', data);
+    warn('天气数据格式不正确:', data);
     return [];
   }
   
@@ -426,234 +258,122 @@ export function processWeatherData(data: any): WeatherInfo[] {
 }
 
 // 获取天气信息
-export async function getWeatherInfo(city: string, date?: string): Promise<WeatherInfo[]> {
+export async function getWeatherInfo(city: string): Promise<WeatherInfo[]> {
   if (USE_MOCK_DATA) {
     return mockWeatherInfo;
   }
 
-  try {
-    // 首先获取城市编码，使用高德地图地理编码服务而不是硬编码的映射表
-    let cityCode = city;
-    
-    // 如果城市名称不是数字（不是现成的adcode），通过地理编码API获取
-    if (!/^\d+$/.test(city)) {
-      try {
-        console.log(`尝试将城市名称 ${city} 转换为城市编码`);
-        // 使用高德地图地理编码服务查询城市编码
-        const geocodeResponse = await retryableAxiosRequest(() => axios.get('https://restapi.amap.com/v3/geocode/geo', {
-          params: {
-            key: ENV.AMAP_API_KEY,
-            address: city,
-            city: '', // 不限制查询城市范围
-            output: 'JSON'
-          },
-          timeout: API_TIMEOUT
-        }));
-        
-        if (geocodeResponse.data.status === '1' && 
-            geocodeResponse.data.geocodes && 
-            geocodeResponse.data.geocodes.length > 0) {
-          // 获取查询结果的城市编码
-          const adcode = geocodeResponse.data.geocodes[0].adcode;
-          if (adcode) {
-            console.log(`通过地理编码服务获取城市编码: ${city} -> ${adcode}`);
-            cityCode = adcode;
-          }
-        } else {
-          console.warn(`无法通过地理编码服务获取城市 ${city} 的编码，将直接使用城市名称`);
+  // 使用AMap.Weather JS API代替Web服务API
+  return new Promise((resolve, reject) => {
+    try {
+      // 检查window.AMap是否已加载
+      if (typeof window.AMap === 'undefined') {
+        warn('AMap JS API尚未加载完成');
+        if (!USE_FALLBACK_DATA) {
+          reject(new Error('高德地图API尚未加载完成，无法获取天气信息'));
+          return;
         }
-      } catch (error) {
-        console.error('地理编码服务查询城市编码失败:', error);
-        // 失败时继续使用城市名称，不中断流程
+        return resolve([]);
       }
-    }
-    
-    console.log(`开始查询天气，使用城市编码: ${cityCode}`);
-    // 高德天气查询仅支持查询未来3天天气
-    const response = await retryableAxiosRequest(() => axios.get('https://restapi.amap.com/v3/weather/weatherInfo', {
-      params: {
-        key: ENV.AMAP_API_KEY,
-        city: cityCode, // 使用城市编码而不是城市名称
-        extensions: 'all', // 'base'返回实况天气，'all'返回预报天气
-        output: 'JSON'
-      },
-      timeout: API_TIMEOUT
-    }));
-    
-    console.log('天气API响应:', JSON.stringify(response.data));
-    
-    if (response.data.status === '1' && response.data.forecasts && response.data.forecasts.length > 0) {
-      // 检查返回的forecasts数组是否包含casts数据
-      if (response.data.forecasts[0].casts && response.data.forecasts[0].casts.length > 0) {
-        console.log('成功获取到天气数据:', response.data.forecasts[0].casts);
-        return response.data.forecasts[0].casts;
-      } else {
-        console.warn(`API返回成功但没有天气预报数据，forecasts:`, response.data.forecasts);
-        return [];
+
+      log(`使用AMap.Weather JS API获取${city}的天气信息`);
+      // 创建Weather实例并获取天气预报
+      window.AMap.plugin(['AMap.Weather'], () => {
+        // 构造Weather类
+        const amapWeather = new window.AMap.Weather();
+        
+        // 查询四天预报天气
+        amapWeather.getForecast(city);
+        
+        // 成功获取天气数据
+        window.AMap.event.addListener(amapWeather, 'complete', (data: any) => {
+          log('天气API响应:', data);
+          
+          if (data && data.forecasts && Array.isArray(data.forecasts)) {
+            // 将高德天气数据转换为应用需要的格式
+            const weatherData = data.forecasts.map((item: any) => ({
+              date: item.date,
+              dayWeather: item.dayWeather || '未知',
+              nightWeather: item.nightWeather || '未知',
+              dayTemp: parseInt(item.dayTemp) || 0,
+              nightTemp: parseInt(item.nightTemp) || 0,
+              winddirection: item.dayWindDirection || '未知',
+              windpower: item.dayWindPower || '未知'
+            }));
+            
+            resolve(weatherData);
+          } else {
+            warn('天气数据格式不正确:', data);
+            if (!USE_FALLBACK_DATA) {
+              reject(new Error('无法解析天气数据'));
+              return;
+            }
+            resolve([]);
+          }
+        });
+        
+        // 天气查询失败
+        window.AMap.event.addListener(amapWeather, 'error', (err: any) => {
+          error('获取天气信息出错:', err);
+          if (!USE_FALLBACK_DATA) {
+            reject(new Error('获取天气信息失败'));
+            return;
+          }
+          resolve([]);
+        });
+      });
+    } catch (err) {
+      error('天气API调用出错:', err);
+      if (!USE_FALLBACK_DATA) {
+        reject(error instanceof Error ? error : new Error('获取天气信息时发生未知错误'));
+        return;
       }
+      resolve([]);
     }
-    
-    // 无法获取天气数据时，返回空数组
-    console.warn(`无法获取 ${city}(${cityCode}) 的天气数据，API返回:`, response.data);
-    return [];
-  } catch (error) {
-    console.error('获取天气信息出错:', error);
-    
-    // 错误时也返回空数组，不使用模拟数据
-    return [];
-  }
+  });
 }
 
 // 创建多天行程的辅助函数
 function createMultiDayTrip(parsedData: any, formData: TripFormData): any {
-  console.log('处理API返回的行程数据，确保生成多天行程');
+  log('处理API返回的行程数据，确保生成多天行程');
   
   // 如果没有days数组或不是数组，创建一个空数组
   if (!parsedData.tripPlan || !parsedData.tripPlan.days || !Array.isArray(parsedData.tripPlan.days)) {
-    console.warn('API返回的数据没有有效的days数组，将创建新的数组');
+    warn('API返回的数据没有有效的days数组，将创建新的数组');
     parsedData.tripPlan.days = [];
   }
   
   // 记录API返回的天数
   const originalDaysCount = parsedData.tripPlan.days.length;
-  console.log(`API返回的行程天数: ${originalDaysCount}, 请求的天数: ${formData.travelDays}`);
-  
-  // 如果API只返回了一天的行程但请求了多天
-  if (originalDaysCount === 1 && formData.travelDays > 1) {
-    console.log('API只返回了一天行程，但需要多天行程，将根据第一天数据生成其他天');
-    
-    // 获取模板日
-    const templateDay = parsedData.tripPlan.days[0];
-    
-    // 为每一天创建一个新的行程
-    for (let i = 1; i < formData.travelDays; i++) {
-      // 计算日期
-      const newDate = new Date(new Date(formData.startDate).getTime() + i * 24 * 60 * 60 * 1000);
-      const dateStr = newDate.toISOString().split('T')[0];
-      
-      // 复制模板日并修改
-      const newDay = JSON.parse(JSON.stringify(templateDay));
-      
-      // 更新日期和索引
-      newDay.date = dateStr;
-      newDay.dayIndex = i;
-      
-      // 修改景点名称和描述，增加多样性
-      if (newDay.attractions && Array.isArray(newDay.attractions)) {
-        newDay.attractions = newDay.attractions.map(attr => {
-          const dayPrefix = `第${i+1}天`;
-          return {
-            ...attr,
-            name: attr.name.includes(dayPrefix) ? attr.name : `${dayPrefix}景点: ${attr.name}`,
-            description: attr.description.includes(dayPrefix) ? 
-              attr.description : `${dayPrefix}游览: ${attr.description}`
-          };
-        });
-      }
-      
-      // 修改餐饮推荐
-      if (newDay.meals && Array.isArray(newDay.meals)) {
-        newDay.meals = newDay.meals.map(meal => {
-          const dayPrefix = `第${i+1}天`;
-          return {
-            ...meal,
-            name: meal.name.includes(dayPrefix) ? meal.name : `${dayPrefix} ${meal.name}`,
-            description: meal.description.includes(dayPrefix) ? 
-              meal.description : `${dayPrefix}推荐: ${meal.description}`
-          };
-        });
-      }
-      
-      // 更新行程描述
-      newDay.description = `第${i+1}天行程安排`;
-      
-      // 添加到行程中
-      parsedData.tripPlan.days.push(newDay);
-    }
-  }
-  // 如果API返回了部分天数但不够
-  else if (originalDaysCount > 0 && originalDaysCount < formData.travelDays) {
-    console.log(`API返回了${originalDaysCount}天行程，但需要${formData.travelDays}天，将补充剩余天数`);
-    
-    // 使用最后一天作为模板
-    const templateDay = parsedData.tripPlan.days[originalDaysCount - 1];
-    
-    // 为缺失的天数创建行程
-    for (let i = originalDaysCount; i < formData.travelDays; i++) {
-      // 计算日期
-      const newDate = new Date(new Date(formData.startDate).getTime() + i * 24 * 60 * 60 * 1000);
-      const dateStr = newDate.toISOString().split('T')[0];
-      
-      // 复制模板并修改
-      const newDay = JSON.parse(JSON.stringify(templateDay));
-      
-      // 更新基本信息
-      newDay.date = dateStr;
-      newDay.dayIndex = i;
-      
-      // 修改景点信息增加多样性
-      if (newDay.attractions && Array.isArray(newDay.attractions)) {
-        newDay.attractions = newDay.attractions.map(attr => {
-          return {
-            ...attr,
-            name: `第${i+1}天景点: ${attr.name.replace(/第\d+天景点:\s*/g, '')}`,
-            description: `第${i+1}天游览: ${attr.description.replace(/第\d+天游览:\s*/g, '')}`
-          };
-        });
-      }
-      
-      // 修改餐饮信息
-      if (newDay.meals && Array.isArray(newDay.meals)) {
-        newDay.meals = newDay.meals.map(meal => {
-          return {
-            ...meal,
-            name: `第${i+1}天 ${meal.name.replace(/第\d+天\s*/g, '')}`,
-            description: `第${i+1}天推荐: ${meal.description.replace(/第\d+天推荐:\s*/g, '')}`
-          };
-        });
-      }
-      
-      // 更新描述
-      newDay.description = `第${i+1}天行程安排`;
-      
-      // 添加到行程中
-      parsedData.tripPlan.days.push(newDay);
-    }
-  }
+  log(`API返回的行程天数: ${originalDaysCount}, 请求的天数: ${formData.travelDays}`);
   
   // 确保每天的索引正确
-  parsedData.tripPlan.days.forEach((day, index) => {
+  parsedData.tripPlan.days.forEach((day: DayPlan, index: number) => {
     day.dayIndex = index;
     
     // 确保日期正确
     if (!day.date) {
-      const newDate = new Date(new Date(formData.startDate).getTime() + index * 24 * 60 * 60 * 1000);
+      const newDate: Date = new Date(new Date(formData.startDate).getTime() + index * 24 * 60 * 60 * 1000);
       day.date = newDate.toISOString().split('T')[0];
     }
     
-    // 不再自动补充景点，保留API返回的原始景点数据
     // 如果attractions不存在或不是数组，初始化为空数组
     if (!day.attractions || !Array.isArray(day.attractions)) {
       day.attractions = [];
     }
-    
-    // 确保每天有三餐建议
-    if (!day.meals || !Array.isArray(day.meals) || day.meals.length < 3) {
-      console.warn(`第${index+1}天餐饮推荐不足，将添加默认推荐`);
-      if (!day.meals || !Array.isArray(day.meals)) {
-        day.meals = [];
-      }
       
       // 所需的餐食类型
-      const requiredMealTypes = ['breakfast', 'lunch', 'dinner'];
+      const requiredMealTypes: ('breakfast' | 'lunch' | 'dinner')[] = ['breakfast', 'lunch', 'dinner'];
       
       // 检查已有的餐食类型
-      const existingTypes = day.meals.map(meal => meal.type);
+      const existingTypes: ('breakfast' | 'lunch' | 'dinner')[] = day.meals
+        .map((meal: Meal) => meal.type)
+        .filter((type): type is 'breakfast' | 'lunch' | 'dinner' => ['breakfast', 'lunch', 'dinner'].includes(type));
       
       // 添加缺失的餐食
       for (const mealType of requiredMealTypes) {
         if (!existingTypes.includes(mealType)) {
-          let mealName, mealDesc;
+          let mealName: string, mealDesc: string;
           
           if (mealType === 'breakfast') {
             mealName = '当地特色早餐';
@@ -670,25 +390,33 @@ function createMultiDayTrip(parsedData: any, formData: TripFormData): any {
             type: mealType,
             name: `第${index+1}天 ${mealName}`,
             description: `第${index+1}天 ${mealDesc}`
-          });
+          } as Meal);
         }
       }
     }
-  });
+  )
   
   // 排序确保按日期顺序
-  parsedData.tripPlan.days.sort((a, b) => a.dayIndex - b.dayIndex);
+  parsedData.tripPlan.days.sort((a: DayPlan, b: DayPlan) => a.dayIndex - b.dayIndex);
   
   return parsedData;
 }
 
 // 添加一个重试函数
-async function retryableAxiosRequest(requestFn, maxRetries = MAX_RETRY_COUNT, delay = RETRY_DELAY) {
-  let lastError;
+interface RetryableAxiosRequestFn {
+  (): Promise<any>;
+}
+
+async function retryableAxiosRequest(
+  requestFn: RetryableAxiosRequestFn, 
+  maxRetries: number = MAX_RETRY_COUNT, 
+  delay: number = RETRY_DELAY
+): Promise<any> {
+  let lastError: unknown;
   for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
     try {
       if (retryCount > 0) {
-        console.log(`正在进行第${retryCount}次重试...`);
+        log(`正在进行第${retryCount}次重试...`);
         // 使用延迟确保不立即重试
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -699,7 +427,7 @@ async function retryableAxiosRequest(requestFn, maxRetries = MAX_RETRY_COUNT, de
         // 只有在超时或网络错误等可能因临时原因导致的错误时才重试
         if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || 
             !error.response || error.response.status >= 500) {
-          console.error(`请求失败，${retryCount < maxRetries ? '将重试' : '已达到最大重试次数'}:`, error.message);
+          log(`请求失败，${retryCount < maxRetries ? '将重试' : '已达到最大重试次数'}:`, error.message);
           continue;
         }
         // 对于其他错误（如400错误），不再重试
@@ -719,7 +447,7 @@ export async function searchPOIByKeyword(keyword: string, city: string) {
 
   // 检查缓存中是否已有该查询结果
   if (poiCache[cacheKey]) {
-    console.log(`使用缓存的POI数据: ${cacheKey}`);
+    log(`使用缓存的POI数据: ${cacheKey}`);
     return poiCache[cacheKey];
   }
 
@@ -760,9 +488,9 @@ export async function searchPOIByKeyword(keyword: string, city: string) {
     // 将结果存入缓存
     poiCache[cacheKey] = response.data;
     return response.data;
-  } catch (error) {
-    console.error('搜索POI出错:', error);
-    throw error;
+  } catch (err) {
+    error('搜索POI出错:', err);
+    throw err;
   }
 }
 
@@ -770,7 +498,7 @@ export async function searchPOIByKeyword(keyword: string, city: string) {
 export async function getPOIById(id: string) {
   // 检查缓存中是否已有该ID的查询结果
   if (poiCache[id]) {
-    console.log(`使用缓存的POI ID数据: ${id}`);
+    log(`使用缓存的POI ID数据: ${id}`);
     return poiCache[id];
   }
 
@@ -800,8 +528,8 @@ export async function getPOIById(id: string) {
     // 将结果存入缓存
     poiCache[id] = response.data;
     return response.data;
-  } catch (error) {
-    console.error('查询POI详情出错:', error);
+  } catch (err) {
+    error('查询POI详情出错:', err);
     throw error;
   }
 }
@@ -906,7 +634,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
   
   // 检查缓存中是否已有该查询结果
   if (poiCache[cacheKey]) {
-    console.log(`使用缓存的景点POI信息: ${cacheKey}`);
+    log(`使用缓存的景点POI信息: ${cacheKey}`);
     const cachedData = poiCache[cacheKey];
     
     if (cachedData.pois && cachedData.pois.length > 0) {
@@ -963,7 +691,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
   }
 
   try {
-    console.log(`开始搜索景点POI信息: ${cleanName}, 城市: ${city}`);
+    log(`开始搜索景点POI信息: ${cleanName}, 城市: ${city}`);
     // 使用高德地图POI搜索API，参数与searchPOIByKeyword保持一致
     const response = await retryableAxiosRequest(() => axios.get('https://restapi.amap.com/v5/place/text', {
       params: {
@@ -981,7 +709,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
     if (response.data.status === '1' && response.data.pois && response.data.pois.length > 0) {
       // 找到POI数据
       const poi = response.data.pois[0]; // 使用第一个结果
-      console.log(`成功获取到景点 "${cleanName}" 的POI信息`);
+      log(`成功获取到景点 "${cleanName}" 的POI信息`);
       // 解析经纬度坐标
       let longitude = 0, latitude = 0;
       if (poi.location) {
@@ -1004,7 +732,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
         category: poi.type || "景点"
       };
     } else {
-      console.warn(`未找到景点 "${cleanName}" 的POI信息`);
+      warn(`未找到景点 "${cleanName}" 的POI信息`);
       // 返回一个兜底的位置（该城市的中心点位置）
       try {
         // 检查缓存中是否已有该城市的中心点
@@ -1013,7 +741,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
         
         if (poiCache[cityCenterCacheKey]) {
           cityCenter = poiCache[cityCenterCacheKey];
-          console.log(`使用缓存的城市中心点: ${city}`);
+          log(`使用缓存的城市中心点: ${city}`);
         } else {
           const geocodeResponse = await retryableAxiosRequest(() => axios.get('https://restapi.amap.com/v3/geocode/geo', {
             params: {
@@ -1049,7 +777,7 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
           }
         }
       } catch (geocodeError) {
-        console.error('获取城市中心点坐标失败:', geocodeError);
+        error('获取城市中心点坐标失败:', geocodeError);
       }
       // 如果城市坐标也获取失败，返回一个默认值
       const defaultResult = {
@@ -1078,8 +806,8 @@ export async function getAttractionPOIInfo(attractionName: string, city: string)
       
       return defaultResult;
     }
-  } catch (error) {
-    console.error(`搜索景点POI信息失败 (${cleanName}):`, error);
+  } catch (err) {
+    error(`搜索景点POI信息失败 (${cleanName}):`, err);
     // 出错时返回一个默认值
     return {
       name: cleanName,
@@ -1128,9 +856,9 @@ export async function getRouteDirection(
       timeout: API_TIMEOUT
     }));
     return response.data;
-  } catch (error) {
-    console.error('路线规划出错:', error);
-    throw error;
+  } catch (err) {
+    error('路线规划出错:', err);
+    throw err;
   }
 }
 
@@ -1263,7 +991,7 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
           
           // 检查解析后的数据
           if (standardizedData && (standardizedData.tripPlan || (standardizedData.travel_plan && !standardizedData.tripPlan))) {
-            console.log('成功解析API响应数据，开始处理行程');
+            log('成功解析API响应数据，开始处理行程');
             
             // 确保数据有tripPlan字段
             const dataToProcess = standardizedData.tripPlan ? standardizedData : standardizedData;
@@ -1277,15 +1005,15 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
               tripPlan: processedData.tripPlan
             };
           } else {
-            console.error('API返回的数据不包含tripPlan对象');
+            error('API返回的数据不包含tripPlan对象');
             throw new Error('API返回的数据不包含旅行计划信息');
           }
         } catch (parseError) {
-          console.error('使用新解析函数处理API响应失败:', parseError);
+          error('使用新解析函数处理API响应失败:', parseError);
           
           // 尝试使用旧方法解析
           const content = response.data.choices[0].message.content;
-          console.log('尝试使用旧方法解析API响应内容');
+          log('尝试使用旧方法解析API响应内容');
           
           try {
             // 使用旧方法尝试解析
@@ -1298,7 +1026,7 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
             const parsedData = JSON.parse(cleanedContent);
             
             if (parsedData && parsedData.tripPlan) {
-              console.log('使用旧方法成功解析API响应数据');
+              log('使用旧方法成功解析API响应数据');
               
               // 使用多天行程处理函数处理数据
               const processedData = createMultiDayTrip(parsedData, formData);
@@ -1309,7 +1037,7 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
               };
             }
           } catch (oldMethodError) {
-            console.error('旧方法解析API响应也失败:', oldMethodError);
+            error('旧方法解析API响应也失败:', oldMethodError);
           }
           
           // 如果不允许回退到模拟数据，直接抛出错误
@@ -1318,7 +1046,7 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
           }
           
           // 回退到模拟数据
-          console.warn('所有解析方法均失败，回退到模拟数据');
+          warn('所有解析方法均失败，回退到模拟数据');
           return {
             result: 'fallback-parse-failed',
             tripPlan: {
@@ -1337,11 +1065,11 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
           };
         }
       } else {
-        console.error('API响应格式不正确，缺少必要的choices字段');
+        error('API响应格式不正确，缺少必要的choices字段');
         throw new Error('API响应格式不正确');
       }
-    } catch (error) {
-      console.error('解析API响应时出错:', error);
+    } catch (err) {
+      error('解析API响应时出错:', err);
       
       // 如果不允许回退到模拟数据，直接抛出错误
       if (!USE_FALLBACK_DATA) {
@@ -1366,31 +1094,31 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
         }
       };
     }
-  } catch (error) {
-    console.error('生成旅行计划出错:', error);
+  } catch (err) {
+    error('生成旅行计划出错:', err);
     
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      const message = error.response?.data?.message;
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status;
+      const message = err.response?.data?.message;
       
       // 记录错误信息
       if (status === 400) {
-        console.error('请求参数错误:', message);
+        error('请求参数错误:', message);
       } else if (status === 401) {
-        console.error('API Key无效');
+        error('API Key无效');
       } else if (status === 403) {
-        console.error('权限不足，可能需要实名认证:', message);
+        error('权限不足，可能需要实名认证:', message);
       } else if (status === 429) {
-        console.error('触发限流:', message);
+        error('触发限流:', message);
       } else if (status === 503 || status === 504) {
-        console.error('服务负载高，稍后重试');
-      } else if (error.code === 'ECONNABORTED') {
-        console.error('请求超时');
+        error('服务负载高，稍后重试');
+      } else if (err.code === 'ECONNABORTED') {
+        error('请求超时');
       }
       
       // 如果不允许回退到模拟数据，直接抛出错误
       if (!USE_FALLBACK_DATA) {
-        throw error;
+        throw err;
       }
       
       // 回退到模拟数据
@@ -1412,6 +1140,6 @@ export async function generateTripPlan(formData: TripFormData): Promise<Deepseek
       };
     }
     
-    throw error;
+    throw err;
   }
 }

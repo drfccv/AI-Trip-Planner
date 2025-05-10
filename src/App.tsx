@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { notification, Modal, ConfigProvider } from 'antd';
 import './App.css';
 import HomePage from './pages/HomePage';
@@ -213,11 +213,7 @@ function AppContent() {
 // 主App组件
 function App() {
   return (
-    <ConfigProvider
-      compat={{
-        react19: true
-      }}
-    >
+    <ConfigProvider>
       <Router>
         <AppContent />
       </Router>

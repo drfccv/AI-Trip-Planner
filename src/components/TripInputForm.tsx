@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, DatePicker, InputNumber, Select, Tag, Space, Divider, Card, Typography } from 'antd';
-import { PlusOutlined, EnvironmentOutlined, CalendarOutlined, CarOutlined, HomeOutlined, HeartOutlined } from '@ant-design/icons';
+import { Form, Input, Button, DatePicker, Select, Tag, Card, Typography } from 'antd';
+import { PlusOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { TripFormData } from '../types';
 
 const { Title, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-const { Option } = Select;
 
 interface TripInputFormProps {
   onSubmit: (formData: TripFormData) => void;

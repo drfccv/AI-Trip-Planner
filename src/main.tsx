@@ -18,15 +18,36 @@ document.documentElement.addEventListener('touchstart', function(event) {
 
 // 设置Ant Design的兼容模式
 ConfigProvider.config({
-  // 启用与React 19的兼容模式
-  compatible: true,
+  theme: {
+    components: {
+      Button: {
+        colorPrimary: '#722ed1',
+      },
+    },
+  },
 });
 
 console.log('已启用 Ant Design 与 React 19 的兼容模式');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ConfigProvider>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#1890ff',
+          borderRadius: 4,
+        },
+        components: {
+          Button: {
+            colorPrimary: '#722ed1',
+          },
+        },
+      }}
+      componentSize="middle"
+      space={{
+        size: 'middle'
+      }}
+    >
       <App />
     </ConfigProvider>
   </React.StrictMode>,

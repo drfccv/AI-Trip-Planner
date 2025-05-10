@@ -6,8 +6,9 @@ import { TripFormData } from '../types';
 const { Content, Footer } = Layout;
 
 interface HomePageProps {
-  onSubmit: (formData: TripFormData) => void;
-  loading?: boolean;
+  onSubmit: (formData: TripFormData) => Promise<void>;
+  loading: boolean;
+  error: string | null;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onSubmit, loading = false }) => {
@@ -38,4 +39,4 @@ const HomePage: React.FC<HomePageProps> = ({ onSubmit, loading = false }) => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

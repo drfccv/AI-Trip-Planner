@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Typography, List, Tag, Descriptions, Button, Row, Col, Collapse, Badge, Space, Divider } from 'antd';
+import { Card, Typography, List, Tag, Descriptions, Button, Row, Col, Badge, Space, Divider, Tabs, Collapse } from 'antd';
 import { 
   EnvironmentOutlined, 
   CalendarOutlined, 
@@ -19,10 +19,7 @@ import AmapComponent from './AmapComponent';
 import { getAttractionPOIInfo } from '../services/api';
 
 const { Title, Text, Paragraph } = Typography;
-const { TabPane } = Tabs;
-const { Panel } = Collapse;
-
-// 处理餐饮描述，去除重复内容
+// 删除未使用的TabPane和Panel声明
 const processMealDescription = (description: string): string => {
   if (!description) return '';
   

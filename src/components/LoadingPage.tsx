@@ -234,7 +234,7 @@ const LoadingPage: React.FC<LoadingPageProps> = ({ progress }) => {
         </div>
       </Card>
 
-      <style jsx="true">{`
+      <style>{`
         @keyframes pulse {
           0% { transform: scale(1); }
           50% { transform: scale(1.02); }
