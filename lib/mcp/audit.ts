@@ -1,0 +1,5 @@
+export type McpAudit = { id: string; provider: string; tool: string; status: "success" | "error" | "blocked"; durationMs: number; createdAt: string; errorCode?: string };
+const state = globalThis as typeof globalThis & { __lvjiMcpAudit?: McpAudit[]; __lvjiMcpRate?: Map<string, { count: number; reset: number }> };
+export function audit(entry: Omit<McpAudit, "id" | "createdAt">) { const log = state.__lvjiMcpAudit ||= []; log.unshift({ ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() }); log.splice(100); }
+export function logs() { return (state.__lvjiMcpAudit || []).slice(0, 50); }
+export function rateLimit(request: Request) { const key = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "local"; const now = Date.now(); const rates = state.__lvjiMcpRate ||= new Map(); const value = rates.get(key); if (!value || value.reset < now) { rates.set(key, { count: 1, reset: now + 60_000 }); return; } value.count += 1; if (value.count > 30) throw new Error("MCP_RATE_LIMITED"); }

@@ -1,0 +1,150 @@
+@keyframes ui-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ui-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ui-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.product button,
+.product input,
+.product select,
+.product textarea,
+.trip-tile,
+.activity,
+.settings-card,
+.connector-list article {
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.22s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.product button:not(:disabled):active {
+  transform: scale(0.97);
+}
+.product input:focus,
+.product select:focus,
+.product textarea:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.dash,
+.create,
+.settings-studio,
+.studio .schedule {
+  animation: ui-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.trip-tile {
+  animation: ui-enter 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.trip-tile:nth-child(2) {
+  animation-delay: 45ms;
+}
+.trip-tile:nth-child(3) {
+  animation-delay: 90ms;
+}
+.trip-tile:nth-child(4) {
+  animation-delay: 135ms;
+}
+.day-tabs button:hover {
+  transform: translateX(3px);
+}
+.day-tabs button.active {
+  animation: ui-pop 0.2s ease both;
+}
+
+.agenda-item {
+  animation: ui-enter 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.agenda-item:nth-child(2) {
+  animation-delay: 35ms;
+}
+.agenda-item:nth-child(3) {
+  animation-delay: 70ms;
+}
+.agenda-item:nth-child(4) {
+  animation-delay: 105ms;
+}
+.agenda-item:nth-child(5) {
+  animation-delay: 140ms;
+}
+.schedule .activity:hover {
+  border-color: color-mix(in srgb, var(--green) 25%, var(--line));
+  box-shadow: 0 8px 26px rgb(20 43 33 / 7%);
+  transform: translateY(-1px);
+}
+.item-edit,
+.add-activity.compact {
+  animation: ui-pop 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.ai-generate-empty {
+  animation: ui-pop 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.add-activity-trigger:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--card) 58%, transparent);
+  transform: translateY(-1px);
+}
+
+.ai-dock {
+  transition: width 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.chat-message,
+.proposal,
+.job-stream {
+  animation: ui-slide-right 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.job-events article {
+  animation: ui-enter 0.2s ease both;
+}
+
+.overlay,
+.settings-overlay {
+  animation: ui-enter 0.18s ease both;
+}
+.versions,
+.delete-dialog,
+.connector-modal {
+  animation: ui-pop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.toast {
+  animation: ui-enter 0.2s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product *,
+  .product *::before,
+  .product *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,2 @@
+.connector-buttons{display:flex!important;gap:4px}.connector-buttons button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;font-size:10px}
+@media(max-width:700px){.connector.expanded .connector-buttons{grid-column:3;grid-row:2}.connector-buttons{flex-direction:column}}

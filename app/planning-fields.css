@@ -1,0 +1,160 @@
+.planning-field-label {
+  position: relative;
+}
+.date-field,
+.choice-field {
+  position: relative;
+  margin-top: 7px;
+}
+.create-form .date-trigger,
+.choice-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 18px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  outline: none;
+  box-shadow: none;
+}
+.date-trigger.active,
+.choice-trigger.active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+.date-trigger svg,
+.choice-trigger svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--muted);
+  stroke-width: 1.8;
+}
+.choice-trigger svg {
+  margin-right: 0;
+  transition: transform 0.18s;
+}
+.choice-trigger.active svg {
+  transform: rotate(180deg);
+}
+.date-popover,
+.choice-popover {
+  position: absolute;
+  z-index: 55;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-width: calc(100vw - 40px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 18px 55px rgb(17 31 24 / 18%);
+  overflow: hidden;
+}
+.date-popover {
+  width: min(320px, calc(100vw - 40px));
+  padding: 14px;
+}
+.date-popover header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.date-popover header b {
+  font-size: 13px;
+}
+.date-popover header div {
+  display: flex;
+  gap: 4px;
+}
+.date-popover header button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.date-popover header svg {
+  width: 14px;
+}
+.calendar-week,
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.calendar-week span {
+  padding: 5px 0;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+.calendar-days button,
+.calendar-days i {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  font-style: normal;
+}
+.calendar-days button:hover {
+  background: var(--paper);
+}
+.calendar-days button.selected {
+  background: var(--green);
+  color: var(--paper);
+}
+.calendar-days button:disabled {
+  cursor: not-allowed;
+  background: transparent;
+  color: color-mix(in srgb, var(--muted) 38%, transparent);
+}
+.choice-popover {
+  display: grid;
+  padding: 6px;
+}
+.choice-popover > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  padding: 10px 11px;
+  text-align: left;
+}
+.choice-popover > button:hover,
+.choice-popover > button.selected {
+  background: var(--paper);
+}
+.choice-popover > button span {
+  display: grid;
+  gap: 2px;
+}
+.choice-popover b {
+  font-size: 12px;
+}
+.choice-popover small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.choice-popover svg {
+  width: 15px;
+  color: var(--green);
+}

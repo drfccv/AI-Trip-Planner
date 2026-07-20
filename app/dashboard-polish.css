@@ -1,0 +1,185 @@
+html {
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+.side-actions {
+  grid-template-columns: 1fr 1fr;
+}
+.side-actions .clear-schedule {
+  color: #c94c3b;
+}
+
+/* Preserve scrolling while removing the square system scrollbars from the UI. */
+.studio-side,
+.schedule,
+.ai-stream,
+.job-activity,
+.connector-list,
+.settings-grid > nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.studio-side::-webkit-scrollbar,
+.schedule::-webkit-scrollbar,
+.ai-stream::-webkit-scrollbar,
+.job-activity::-webkit-scrollbar,
+.connector-list::-webkit-scrollbar,
+.settings-grid > nav::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-side,
+.schedule,
+.ai-dock,
+.settings-card,
+.connector-modal,
+.versions,
+.delete-dialog {
+  background-clip: padding-box;
+}
+
+.dash-intro {
+  justify-content: flex-start;
+}
+.tile-art {
+  height: 164px;
+  isolation: isolate;
+  background: linear-gradient(150deg, #a9c6ba 0%, #52786a 58%, #284b3e 100%);
+}
+.tone-1 {
+  background: linear-gradient(150deg, #e1b487 0%, #b7785d 58%, #70483f 100%);
+}
+.tone-2 {
+  background: linear-gradient(150deg, #bdcbe0 0%, #7086a8 58%, #405575 100%);
+}
+.tone-3 {
+  background: linear-gradient(150deg, #d9c1a5 0%, #89927a 58%, #4e5c4d 100%);
+}
+.tile-art::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 76% 24%,
+      rgb(255 249 218 / 78%) 0 8px,
+      transparent 9px
+    ),
+    linear-gradient(
+      155deg,
+      transparent 0 53%,
+      rgb(255 255 255 / 13%) 53.3% 54%,
+      transparent 54.3%
+    ),
+    linear-gradient(25deg, transparent 0 60%, rgb(14 49 37 / 18%) 60.3% 100%);
+}
+.tile-art::after {
+  width: 118%;
+  height: 90%;
+  right: -18%;
+  bottom: -65%;
+  border-color: rgb(255 255 255 / 52%);
+  box-shadow:
+    0 0 0 22px rgb(255 255 255 / 8%),
+    0 0 0 45px rgb(255 255 255 / 5%);
+  transform: rotate(-8deg);
+}
+.tile-art i {
+  display: none;
+}
+.topbar .theme {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+}
+.topbar .theme svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.7;
+}
+.trip-create-tile {
+  display: grid;
+  min-height: 100%;
+  padding: 32px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed color-mix(in srgb, var(--green) 32%, var(--line));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--card) 48%, transparent);
+  color: var(--ink);
+  text-align: center;
+}
+.trip-create-tile > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 5px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--paper);
+  font-size: 22px;
+  font-weight: 300;
+}
+.trip-create-tile b {
+  font:
+    20px Georgia,
+    "Songti SC",
+    serif;
+}
+.trip-create-tile small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.trip-create-tile:hover {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 5%, var(--card));
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgb(20 43 33 / 8%);
+}
+.trip-delete {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+}
+.trip-delete svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
+}
+
+.product .delete-dialog {
+  padding: 30px 30px 28px;
+}
+.product .delete-dialog p {
+  margin-bottom: 18px;
+}
+.product .delete-dialog footer {
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 720px) {
+  .dash-intro {
+    display: grid;
+    gap: 18px;
+  }
+}

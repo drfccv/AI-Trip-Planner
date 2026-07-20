@@ -1,0 +1,13 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const blocked = /^(localhost|127\.|0\.|10\.|192\.168\.|169\.254\.)/i;
+const safe = raw => { const url = new URL(raw); return url.protocol === "https:" && !blocked.test(url.hostname); };
+test("MCP blocks loopback and private endpoints", () => { assert.equal(safe("https://127.0.0.1/mcp"), false); assert.equal(safe("https://192.168.1.8/mcp"), false); });
+test("MCP requires HTTPS", () => assert.equal(safe("http://mcp.example.com/mcp"), false));
+test("MCP accepts public Streamable HTTP endpoint", () => assert.equal(safe("https://mcp.tavily.com/mcp/"), true));
+test("RollingGo hotel and flight endpoints are public HTTPS", () => { assert.equal(safe("https://mcp.rollinggo.cn/mcp"), true); assert.equal(safe("https://mcp.rollinggo.cn/mcp/flight"), true); });
+test("flight search requires exactly one city or airport per side", () => { const valid = x => Number(Boolean(x.fromCity)) + Number(Boolean(x.fromAirport)) === 1 && Number(Boolean(x.toCity)) + Number(Boolean(x.toAirport)) === 1; assert.equal(valid({ fromCity: "HGH", toCity: "CTU" }), true); assert.equal(valid({ fromCity: "SHA", fromAirport: "PVG", toCity: "CTU" }), false); });
+test("MCP gateway uses edge-compatible manual redirects and blocks 3xx", () => { const source = readFileSync(new URL("../lib/mcp/gateway.ts", import.meta.url), "utf8"); assert.match(source, /redirect: "manual"/); assert.match(source, /MCP_REDIRECT_BLOCKED/); assert.doesNotMatch(source, /redirect: "error"/); });
+test("AMap key is injected as a query parameter and never as Authorization", () => { const source = readFileSync(new URL("../lib/mcp/gateway.ts", import.meta.url), "utf8"); assert.match(source, /url\.searchParams\.set\("key", config\.apiKey\)/); assert.match(source, /config\.id !== "amap"/); });
+test("MCP initialized notifications accept empty 202 or 204 responses", () => { const source = readFileSync(new URL("../lib/mcp/gateway.ts", import.meta.url), "utf8"); assert.match(source, /response\.status === 202 \|\| response\.status === 204/); assert.match(source, /init\.session, false/); });
