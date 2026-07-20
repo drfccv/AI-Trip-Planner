@@ -60,22 +60,18 @@ export async function configs(request: Request) {
   const merged: Record<string, McpServerConfig> = { ...defaults };
   for (const row of rows) {
     const secret = await decryptSecret(row.encryptedSecret);
-    const legacyRailDefault =
-      row.providerKey === "rail12306" &&
-      row.source === "builtin" &&
-      row.endpoint.startsWith("https://mcp.api-inference.modelscope.net/");
     merged[row.providerKey] = {
       id: row.providerKey,
       name:
         row.source === "builtin" && defaults[row.providerKey]
           ? defaults[row.providerKey].name
           : row.name,
-      endpoint: legacyRailDefault ? "" : row.endpoint,
+      endpoint: row.endpoint,
       homepage: defaults[row.providerKey]?.homepage,
       authMode: row.authMode as McpServerConfig["authMode"],
       apiKey: row.authMode === "bearer" ? secret : undefined,
       authHeader: row.authMode === "authorization" ? secret : undefined,
-      enabled: legacyRailDefault ? false : row.enabled,
+      enabled: row.enabled,
       permission: row.permission as McpServerConfig["permission"],
       source: row.source as McpServerConfig["source"],
     };

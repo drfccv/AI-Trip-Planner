@@ -86,6 +86,8 @@ pnpm db:generate
 
 本地开发由 Wrangler/Miniflare 提供模拟 D1，状态通常保存在 `.wrangler/`。该目录只用于本机开发且已被 Git 忽略；本地数据与线上 D1 不会自动同步。
 
+仓库不会提交 `.openai/hosting.json`。该文件不存在时，开发服务器会自动创建名为 `DB` 的本地模拟 D1 binding，无需手动补充站点配置。
+
 ## MCP Gateway 与安全
 
 应用支持无认证、Bearer Token 和自定义 Authorization 三种 MCP 认证方式。MCP Gateway 会：
