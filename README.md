@@ -2,7 +2,9 @@
 
 一个以 AI 对话驱动的旅行规划 Web 应用。旅迹将目的地、日期、预算和偏好转化为可编辑的逐日行程，并通过地图、天气以及 MCP 外部服务补充真实旅行信息。
 
-> 当前版本面向普通 Node.js 服务器运行，使用 PostgreSQL 保存数据。项目不会在外部服务不可用时生成虚假的搜索结果。
+**在线示例：** [https://lvji.liuyuan.top/](https://lvji.liuyuan.top/)
+
+![旅迹首页截图](https://picui.ogmua.cn/s1/2026/07/21/6a5ee653883d9.webp)
 
 ## 功能特性
 
@@ -17,11 +19,12 @@
 
 ## 技术栈
 
-- React 19、Next.js 16、TypeScript
-- Vinext、Vite、Cloudflare Workers
-- PostgreSQL 18、Drizzle ORM
-- Zod、React Markdown、Lucide React
-- Node.js Test Runner、ESLint
+- **前端框架**：Next.js 16（App Router）、React 19、TypeScript 5.9
+- **样式与界面**：Tailwind CSS 4、Lucide React、React Markdown
+- **服务端与数据**：Node.js 22、PostgreSQL 18、Drizzle ORM
+- **AI 与外部服务**：OpenAI-compatible API、MCP（Streamable HTTP）、高德地图
+- **校验与工程化**：Zod 4、ESLint 9、Node.js Test Runner
+- **部署**：Docker、Docker Compose
 
 ## 快速开始
 
@@ -145,7 +148,6 @@ worker/              Cloudflare Worker 入口
 3. 高强度 `APP_ENCRYPTION_KEY`；
 4. 执行 `pnpm install --frozen-lockfile && pnpm db:migrate && pnpm build && pnpm start`。
 
-仓库不包含具体站点 ID、部署凭证或生产密钥。部署平台的本地配置应保存在被 Git 忽略的 `.openai/` 等目录中。
 
 ## License
 
