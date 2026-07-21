@@ -41,7 +41,7 @@ const input = z.object({
 });
 const auth = (request: Request) =>
   Object.fromEntries(
-    ["oai-authenticated-user-email", "oai-authenticated-user-full-name"]
+    ["oai-authenticated-user-email", "oai-authenticated-user-full-name", "x-desktop-runtime", "x-desktop-token"]
       .map((name) => [name, request.headers.get(name) || ""])
       .filter(([, value]) => value),
   );

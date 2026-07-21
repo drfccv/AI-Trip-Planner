@@ -1,0 +1,2 @@
+declare global{interface Window{tripPlanner?:{request(input:{path:string;method:string;body?:unknown}):Promise<{status:number;data:unknown}>}}}
+export async function appFetch(url:string,options?:RequestInit){if(!window.tripPlanner)return fetch(url,options);let body:unknown;if(typeof options?.body==="string")body=JSON.parse(options.body);const result=await window.tripPlanner.request({path:url,method:options?.method||"GET",body});return{ok:result.status>=200&&result.status<300,status:result.status,json:async()=>result.data}as Response}

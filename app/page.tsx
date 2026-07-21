@@ -21,7 +21,6 @@ import { FormChoiceField, PaceField, TravelDateField } from "./PlanningFields";
 import { buildTripCalendar } from "@/lib/calendar";
 import {
   defaultTravelPreferences,
-  travelPreferencesKey,
   type UserTravelPreferences,
 } from "@/lib/user-preferences";
 import "./product.css";
@@ -33,6 +32,7 @@ import "./dashboard-polish.css";
 import "./planning-fields.css";
 import "./job-progress.css";
 import "./motion.css";
+import { appFetch } from "@/renderer/app/transport";
 
 type TripItem = {
   id: string;
@@ -139,7 +139,7 @@ const errorText: Record<string, string> = {
 };
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await appFetch(url, {
     cache: "no-store",
     ...options,
     headers: {
@@ -208,12 +208,7 @@ export default function App() {
   useEffect(() => {
     const syncPreferences = () => {
       try {
-        const saved = window.localStorage.getItem(travelPreferencesKey);
-        setTravelPreferences(
-          saved
-            ? { ...defaultTravelPreferences, ...JSON.parse(saved) }
-            : defaultTravelPreferences,
-        );
+        void api<{ preferences: UserTravelPreferences | null }>("/api/desktop/preferences").then(result => setTravelPreferences(result.preferences ? { ...defaultTravelPreferences, ...result.preferences } : defaultTravelPreferences));
       } catch {
         setTravelPreferences(defaultTravelPreferences);
       }

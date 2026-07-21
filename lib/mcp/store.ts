@@ -6,6 +6,8 @@ import { providerDefaults } from "./registry";
 import type { McpServerConfig } from "./types";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+type DesktopSecretStore = { encrypt(value: string): string; decrypt(value: string): string };
+const desktopStore = () => (globalThis as typeof globalThis & { __desktopSecretStore?: DesktopSecretStore }).__desktopSecretStore;
 async function key() {
   const localFallback =
     process.env.NODE_ENV !== "production"
@@ -32,6 +34,7 @@ const unb64 = (data: string) =>
   );
 export async function encryptSecret(value?: string) {
   if (!value) return null;
+  if (desktopStore()) return desktopStore()!.encrypt(value);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
@@ -42,6 +45,7 @@ export async function encryptSecret(value?: string) {
 }
 export async function decryptSecret(value?: string | null) {
   if (!value) return "";
+  if (desktopStore()) return desktopStore()!.decrypt(value);
   const [iv, payload] = value.split(".");
   const clear = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: unb64(iv) },
