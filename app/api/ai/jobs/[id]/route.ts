@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import { getRequestExecutionContext } from "vinext/shims/request-context";
 import { getDb } from "@/db";
 import { aiJobs } from "@/db/schema";
 import { publicAiJob } from "@/lib/ai/job-public";
@@ -12,9 +11,7 @@ const auth = (request: Request) =>
       .filter(([, value]) => value),
   );
 const schedule = (promise: Promise<unknown>) => {
-  const context = getRequestExecutionContext();
-  if (context) context.waitUntil(promise);
-  else void promise;
+  void promise;
 };
 export async function GET(
   request: Request,

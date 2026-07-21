@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
+import { getDb, getSql } from "@/db";
 import { users } from "@/db/schema";
 import { ensureSchema } from "@/db/ensure-schema";
 
@@ -22,11 +22,10 @@ const idFor = async (email: string) =>
   `usr_${(await digest(email.toLowerCase())).slice(0, 32)}`;
 
 async function limitAnonymousCreation(request: Request) {
-  await getDb().$client.batch([
-    getDb().$client.prepare("DELETE FROM anonymous_creation_limits WHERE expires_at < CURRENT_TIMESTAMP"),
-    getDb().$client.prepare("DELETE FROM users WHERE email LIKE '%@anonymous.lvji.invalid' AND updated_at < datetime('now', '-90 days')"),
-    getDb().$client.prepare("DELETE FROM users WHERE email LIKE '%@anonymous.lvji.invalid' AND updated_at < datetime('now', '-1 day') AND NOT EXISTS (SELECT 1 FROM trips WHERE trips.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM ai_settings WHERE ai_settings.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM mcp_servers WHERE mcp_servers.user_id = users.id)"),
-  ]);
+  const sqlClient = getSql();
+  await sqlClient`DELETE FROM anonymous_creation_limits WHERE expires_at < CURRENT_TIMESTAMP`;
+  await sqlClient`DELETE FROM users WHERE email LIKE '%@anonymous.lvji.invalid' AND updated_at < CURRENT_TIMESTAMP - INTERVAL '90 days'`;
+  await sqlClient`DELETE FROM users WHERE email LIKE '%@anonymous.lvji.invalid' AND updated_at < CURRENT_TIMESTAMP - INTERVAL '1 day' AND NOT EXISTS (SELECT 1 FROM trips WHERE trips.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM ai_settings WHERE ai_settings.user_id = users.id) AND NOT EXISTS (SELECT 1 FROM mcp_servers WHERE mcp_servers.user_id = users.id)`;
   const ip =
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-real-ip") ||
@@ -38,13 +37,9 @@ async function limitAnonymousCreation(request: Request) {
     { key: `day:${ipHash}:${now.slice(0, 10)}`, limit: 20, expiry: "+2 days" },
   ];
   for (const window of windows) {
-    const result = await getDb().$client
-      .prepare(
-        "INSERT INTO anonymous_creation_limits (bucket_key, count, expires_at) VALUES (?, 1, datetime('now', ?)) ON CONFLICT(bucket_key) DO UPDATE SET count = count + 1 RETURNING count",
-      )
-      .bind(window.key, window.expiry)
-      .first<{ count: number }>();
-    if ((result?.count || 0) > window.limit)
+    const interval = window.expiry === "+2 hours" ? "2 hours" : "2 days";
+    const [result] = await sqlClient`INSERT INTO anonymous_creation_limits (bucket_key, count, expires_at) VALUES (${window.key}, 1, CURRENT_TIMESTAMP + ${interval}::interval) ON CONFLICT(bucket_key) DO UPDATE SET count = anonymous_creation_limits.count + 1 RETURNING count`;
+    if ((Number(result?.count) || 0) > window.limit)
       throw new Error("ANONYMOUS_CREATION_RATE_LIMITED");
   }
 }
@@ -86,12 +81,12 @@ export async function requireRequestUser(request: Request): Promise<RequestUser>
   }
 
   if (anonymous && request.method === "PUT" && new URL(request.url).pathname === "/api/mcp/servers") {
-    const row = await db.$client.prepare("SELECT COUNT(*) AS count FROM mcp_servers WHERE user_id = ?").bind(id).first<{ count: number }>();
-    if ((row?.count || 0) >= 20) throw new Error("ANONYMOUS_MCP_LIMIT_REACHED");
+    const [row] = await getSql()`SELECT COUNT(*) AS count FROM mcp_servers WHERE user_id = ${id}`;
+    if ((Number(row?.count) || 0) >= 20) throw new Error("ANONYMOUS_MCP_LIMIT_REACHED");
   }
   if (anonymous && request.method === "POST" && new URL(request.url).pathname === "/api/ai/jobs") {
-    const row = await db.$client.prepare("SELECT COUNT(*) AS count FROM ai_jobs WHERE user_id = ?").bind(id).first<{ count: number }>();
-    if ((row?.count || 0) >= 1000) throw new Error("ANONYMOUS_AI_JOB_LIMIT_REACHED");
+    const [row] = await getSql()`SELECT COUNT(*) AS count FROM ai_jobs WHERE user_id = ${id}`;
+    if ((Number(row?.count) || 0) >= 1000) throw new Error("ANONYMOUS_AI_JOB_LIMIT_REACHED");
   }
 
   return { id, email, displayName, anonymous };

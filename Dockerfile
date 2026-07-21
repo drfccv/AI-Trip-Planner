@@ -1,7 +1,9 @@
-FROM node:22-alpine AS build
+FROM node:22-alpine
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN npm run build
-CMD ["npm","run","start"]
+RUN pnpm build
+EXPOSE 4173
+CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]

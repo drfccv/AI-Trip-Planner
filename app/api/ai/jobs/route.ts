@@ -1,6 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { getRequestExecutionContext } from "vinext/shims/request-context";
 import { getDb } from "@/db";
 import { aiJobs, trips } from "@/db/schema";
 import { publicAiJob } from "@/lib/ai/job-public";
@@ -46,9 +45,7 @@ const auth = (request: Request) =>
       .filter(([, value]) => value),
   );
 const schedule = (promise: Promise<unknown>) => {
-  const context = getRequestExecutionContext();
-  if (context) context.waitUntil(promise);
-  else void promise;
+  void promise;
 };
 
 export async function POST(request: Request) {

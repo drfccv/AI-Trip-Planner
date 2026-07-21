@@ -48,6 +48,7 @@ type AiJob = {
   progress: number;
   attempts: number;
   activity: JobActivity[];
+  createdAt: string;
   updatedAt: string;
   result: Proposal | null;
   error: string | null;

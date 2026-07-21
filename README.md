@@ -2,7 +2,7 @@
 
 一个以 AI 对话驱动的旅行规划 Web 应用。旅迹将目的地、日期、预算和偏好转化为可编辑的逐日行程，并通过地图、天气以及 MCP 外部服务补充真实旅行信息。
 
-> 当前版本面向 Cloudflare/Sites 运行环境，使用 D1 保存数据。项目不会在外部服务不可用时生成虚假的搜索结果。
+> 当前版本面向普通 Node.js 服务器运行，使用 PostgreSQL 保存数据。项目不会在外部服务不可用时生成虚假的搜索结果。
 
 ## 功能特性
 
@@ -19,7 +19,7 @@
 
 - React 19、Next.js 16、TypeScript
 - Vinext、Vite、Cloudflare Workers
-- Cloudflare D1、Drizzle ORM
+- PostgreSQL 18、Drizzle ORM
 - Zod、React Markdown、Lucide React
 - Node.js Test Runner、ESLint
 
@@ -36,14 +36,16 @@
 git clone https://github.com/drfccv/AI-Trip-Planner.git
 cd AI-Trip-Planner
 pnpm install
-cp .env.example .env.local
+cp .env.example .env
+pnpm db:migrate
 pnpm dev
 ```
 
 Windows PowerShell 可使用：
 
 ```powershell
-Copy-Item .env.example .env.local
+Copy-Item .env.example .env
+pnpm db:migrate
 pnpm dev
 ```
 
@@ -57,6 +59,8 @@ pnpm dev
 
 | 变量 | 用途 |
 | --- | --- |
+| `DATABASE_URL` | PostgreSQL 连接字符串，例如 `postgresql://user:password@127.0.0.1:5432/ai_trip_planner` |
+| `DATABASE_POOL_SIZE` | 可选；数据库连接池上限，默认 10 |
 | `APP_ENCRYPTION_KEY` | 使用 AES-GCM 加密保存 AI/MCP 凭证；生产环境保存密钥时必须配置高强度值 |
 | `AI_PROVIDER` | AI 服务商标识，默认使用 OpenAI-compatible 协议 |
 | `AI_BASE_URL` | OpenAI-compatible API 地址 |
@@ -74,19 +78,18 @@ pnpm dev
 | `MCP_DIDA_URL` / `MCP_DIDA_FLIGHT_URL` | RollingGo 酒店和机票 MCP 地址 |
 | `DIDA_API_KEY` / `ROLLINGGO_API_KEY` | RollingGo 兼容凭证 |
 
-## 数据库与本地开发
+## PostgreSQL 与本地开发
 
-生产环境使用 Cloudflare D1，保存用户、行程、每日安排、地点、路线、AI 任务、MCP 配置、操作记录和版本快照。
+生产环境使用 PostgreSQL，保存用户、行程、每日安排、地点、路线、AI 任务、MCP 配置、操作记录和版本快照。
 
-数据库结构定义位于 `db/schema.ts`，迁移文件位于 `drizzle/`。生成新的 Drizzle migration：
+数据库结构定义位于 `db/schema.ts`，PostgreSQL 迁移文件位于 `drizzle-pg/`。生成和执行 Drizzle migration：
 
 ```bash
 pnpm db:generate
+pnpm db:migrate
 ```
 
-本地开发由 Wrangler/Miniflare 提供模拟 D1，状态通常保存在 `.wrangler/`。该目录只用于本机开发且已被 Git 忽略；本地数据与线上 D1 不会自动同步。
-
-仓库不会提交 `.openai/hosting.json`。该文件不存在时，开发服务器会自动创建名为 `DB` 的本地模拟 D1 binding，无需手动补充站点配置。
+项目也提供 `docker-compose.yml`，可同时启动 PostgreSQL 18 和应用。生产环境应使用独立的高强度数据库密码与 `APP_ENCRYPTION_KEY`。
 
 ## MCP Gateway 与安全
 
@@ -135,12 +138,12 @@ worker/              Cloudflare Worker 入口
 
 ## 部署说明
 
-生产部署需要提供：
+普通 Node 服务器部署需要提供：
 
-1. Cloudflare Worker 兼容运行环境；
-2. 名为 `DB` 的 D1 binding；
-3. 所需的 AI、地图和 MCP 环境变量；
-4. 能够注入可信用户身份的认证层。
+1. Node.js 22.13 或更高版本；
+2. PostgreSQL 18 数据库和 `DATABASE_URL`；
+3. 高强度 `APP_ENCRYPTION_KEY`；
+4. 执行 `pnpm install --frozen-lockfile && pnpm db:migrate && pnpm build && pnpm start`。
 
 仓库不包含具体站点 ID、部署凭证或生产密钥。部署平台的本地配置应保存在被 Git 忽略的 `.openai/` 等目录中。
 

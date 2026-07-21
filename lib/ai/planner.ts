@@ -387,8 +387,10 @@ const itineraryResponseSchema = {
     },
   },
 };
+type AiRuntime = Awaited<ReturnType<typeof runtime>>;
+
 export async function modelCall(
-  runtime: Awaited<ReturnType<typeof runtime>>,
+  runtime: AiRuntime,
   messages: ChatMessage[],
   tools: unknown[] = [],
   structured = false,

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { executeStatements } from "@/db/execute-statements";
 import { aiSettings, mcpCallLogs, mcpServers, trips } from "@/db/schema";
 import { requireRequestUser } from "@/lib/auth/request-user";
 
@@ -13,7 +14,7 @@ export async function DELETE(request: Request) {
     if (body.scope === "trips")
       await db.delete(trips).where(eq(trips.userId, user.id));
     else
-      await db.batch([
+      await executeStatements([
         db.delete(trips).where(eq(trips.userId, user.id)),
         db.delete(mcpServers).where(eq(mcpServers.userId, user.id)),
         db.delete(mcpCallLogs).where(eq(mcpCallLogs.userId, user.id)),

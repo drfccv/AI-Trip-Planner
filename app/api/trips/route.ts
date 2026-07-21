@@ -1,5 +1,6 @@
 import { count, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { executeStatements } from "@/db/execute-statements";
 import { tripDays, trips, tripVersions } from "@/db/schema";
 import { requireRequestUser } from "@/lib/auth/request-user";
 export async function GET(request: Request) {
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       revision: 1,
       days: days.map((day) => ({ ...day, items: [], routes: [] })),
     });
-    await getDb().batch([
+    await executeStatements([
       getDb().insert(trips).values(trip),
       getDb().insert(tripDays).values(days),
       getDb().insert(tripVersions).values({

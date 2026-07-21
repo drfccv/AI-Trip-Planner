@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const reasoning = reasoningRequestFields(settings.provider, base, settings.thinkingEnabled);
     let answer; try { answer = await modelCall(base, key, settings.model, messages, tools, controller.signal, tools.length === 0, reasoning); } catch (error) { if (tools.length && error instanceof Error && error.message.includes("HTTP 400")) answer = await modelCall(base, key, settings.model, messages, [], controller.signal, true, reasoning); else throw error; } const trace: Trace[] = [];
     if (answer?.tool_calls?.length) {
-      const calls = answer.tool_calls.slice(0, 6); messages.push({ role: "assistant", content: answer.content == null || typeof answer.content === "string" ? answer.content : contentText(answer), tool_calls: calls });
+      const calls = answer.tool_calls.slice(0, 6); messages.push({ role: "assistant", content: (answer.content == null || typeof answer.content === "string" ? answer.content : contentText(answer)) ?? null, tool_calls: calls });
       for (const call of calls) {
         const entry = mcp.find(item => item.alias === call.function.name); if (!entry) continue; const started = Date.now();
         try { const args = JSON.parse(call.function.arguments || "{}"); const result = await callTool(entry.config, entry.tool.name, args); const durationMs = Date.now() - started; trace.push({ provider: entry.config.name, tool: entry.tool.name, status: "success", durationMs }); await getDb().insert(mcpCallLogs).values({ id: crypto.randomUUID(), userId: user.id, serverId: entry.config.id, toolName: entry.tool.name, status: "success", durationMs }).catch(() => undefined); messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result).slice(0, 16000) }); }
