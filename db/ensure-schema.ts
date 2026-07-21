@@ -5,6 +5,7 @@ let ready: Promise<void> | null = null;
 const schema = [
   `CREATE TABLE IF NOT EXISTS users (id text PRIMARY KEY NOT NULL, email text NOT NULL, display_name text NOT NULL, created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL, updated_at text DEFAULT CURRENT_TIMESTAMP NOT NULL)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS users_email_uq ON users (email)`,
+  `CREATE TABLE IF NOT EXISTS anonymous_creation_limits (bucket_key text PRIMARY KEY NOT NULL, count integer DEFAULT 0 NOT NULL, expires_at text NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS trips (id text PRIMARY KEY NOT NULL, user_id text NOT NULL, title text NOT NULL, destination text NOT NULL, start_date text NOT NULL, end_date text NOT NULL, status text DEFAULT 'draft' NOT NULL, revision integer DEFAULT 1 NOT NULL, currency text DEFAULT 'CNY' NOT NULL, budget_total real, constraints_json text DEFAULT '{}' NOT NULL, source_type text DEFAULT 'user_added' NOT NULL, created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL, updated_at text DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)`,
   `CREATE INDEX IF NOT EXISTS trips_user_idx ON trips (user_id)`,
   `CREATE TABLE IF NOT EXISTS trip_days (id text PRIMARY KEY NOT NULL, trip_id text NOT NULL, day_index integer NOT NULL, date text NOT NULL, title text NOT NULL, weather_json text, summary_json text DEFAULT '{}' NOT NULL, created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL, updated_at text DEFAULT CURRENT_TIMESTAMP NOT NULL, FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE)`,

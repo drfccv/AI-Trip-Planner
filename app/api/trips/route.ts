@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { tripDays, trips, tripVersions } from "@/db/schema";
 import { requireRequestUser } from "@/lib/auth/request-user";
@@ -26,6 +26,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireRequestUser(request);
+    if (user.anonymous) {
+      const [{ value }] = await getDb().select({ value: count() }).from(trips).where(eq(trips.userId, user.id));
+      if (value >= 50) return Response.json({ error: "匿名用户最多保存 50 个行程" }, { status: 429 });
+    }
     const body = (await request.json()) as {
       title?: string;
       destination?: string;
