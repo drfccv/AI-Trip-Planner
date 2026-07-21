@@ -1,0 +1,16 @@
+.desktop-shell{height:100vh;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.desktop-content{min-height:0;flex:1;overflow:auto}
+.desktop-content>.app,.desktop-content>.product{min-height:100%}
+.desktop-titlebar{position:relative;z-index:1000;display:flex;flex:none;height:42px;align-items:center;border-bottom:1px solid color-mix(in srgb,var(--line) 82%,transparent);background:color-mix(in srgb,var(--bg) 88%,transparent);color:var(--text);backdrop-filter:blur(24px) saturate(1.25);user-select:none;-webkit-app-region:drag}
+.desktop-titlebar__identity{display:flex;align-items:center;gap:9px;padding-left:14px;font-size:12px;font-weight:650;letter-spacing:.01em;white-space:nowrap}
+.desktop-titlebar__identity i{padding:2px 6px;border:1px solid color-mix(in srgb,var(--blue) 24%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--blue) 8%,transparent);color:var(--blue);font-size:7px;font-style:normal;font-weight:800;letter-spacing:.13em}
+.desktop-titlebar__mark{display:grid;width:25px;height:25px;place-items:center;border-radius:50% 50% 44% 56%;background:#214f3e;color:#f3f1ea;font-family:Georgia,"Songti SC",SimSun,serif;font-size:13px;font-weight:700;box-shadow:0 3px 8px rgb(33 79 62 / 18%)}
+.desktop-titlebar__drag{min-width:48px;flex:1;align-self:stretch}
+.desktop-titlebar__controls{display:flex;height:100%;-webkit-app-region:no-drag}
+.desktop-titlebar__controls button{display:grid;width:46px;height:100%;padding:0;place-items:center;border:0;border-radius:0;background:transparent;color:currentColor;transition:background-color .14s,color .14s}
+.desktop-titlebar__controls button:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+.desktop-titlebar__controls button:active{background:color-mix(in srgb,var(--text) 13%,transparent)}
+.desktop-titlebar__controls button.desktop-titlebar__close:hover{background:#c42b1c;color:#fff}
+.desktop-titlebar__controls button.desktop-titlebar__close:active{background:#a92317;color:#fff}
+.desktop-titlebar__controls svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1;shape-rendering:crispEdges}
+@media(max-width:720px){.desktop-titlebar__identity>span:nth-child(2),.desktop-titlebar__identity i{display:none}}

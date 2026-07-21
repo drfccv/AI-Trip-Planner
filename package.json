@@ -16,6 +16,7 @@
     "predesktop:dev": "electron-rebuild -f -w better-sqlite3",
     "desktop:dev": "pnpm desktop:build && cross-env DESKTOP_DEV=1 electron .",
     "desktop:build": "tsup && vite build --config vite.renderer.config.ts",
+    "predesktop:package": "electron-rebuild -f -w better-sqlite3",
     "desktop:package": "pnpm desktop:build && electron-builder --win nsis",
     "predesktop:test": "pnpm rebuild better-sqlite3",
     "desktop:test": "cross-env TSX_TSCONFIG_PATH=tsconfig.desktop-test.json tsx --test tests/*.desktop-test.mjs"
@@ -67,7 +68,8 @@
   },
   "build": {
     "appId": "com.drfccv.aitripplanner",
-    "productName": "AI Trip Planner",
+    "productName": "旅迹",
+    "artifactName": "旅迹-安装程序-${version}.${ext}",
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**"
@@ -79,12 +81,15 @@
       "dist/**",
       "drizzle/*.sql",
       "drizzle/meta/**",
+      "desktop/assets/icon.png",
+      "desktop/assets/icon.svg",
       "package.json",
       "node_modules/better-sqlite3/**",
       "node_modules/bindings/**",
       "node_modules/file-uri-to-path/**"
     ],
     "win": {
+      "icon": "desktop/assets/icon.png",
       "target": [
         "nsis"
       ]
@@ -93,6 +98,6 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "npmRebuild": true
+    "npmRebuild": false
   }
 }

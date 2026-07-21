@@ -1,4 +1,4 @@
-# AI Trip Planner（旅迹）
+# 旅迹
 
 本仓库 `main` 分支维护 Web/Cloudflare 版；`drfccv/electron-local` 分支维护可安装的 Windows Electron 单机版。项目采用 Apache-2.0 License。
 
@@ -13,7 +13,7 @@
 数据库位于：
 
 ```text
-%APPDATA%\AI Trip Planner\data\trip-planner.db
+%APPDATA%\Lvji\data\trip-planner.db
 ```
 
 启动时自动执行 Drizzle migrations，并启用外键、WAL 和 busy timeout。应用使用单实例锁，退出时关闭连接。

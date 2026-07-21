@@ -90,8 +90,6 @@ export function SettingsPanel({
   });
   const [aiKey, setAiKey] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
-  const [integrationKeys, setIntegrationKeys] = useState({ amapWebServiceKey: "", amapJsKey: "", amapSecurityCode: "", uapiKey: "" });
-  const [integrationHints, setIntegrationHints] = useState<Record<string, string | null>>({});
   const [deleteScope, setDeleteScope] = useState<"trips" | "all" | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
@@ -117,7 +115,6 @@ export function SettingsPanel({
       .then((data) => setAi(data.settings))
       .catch(() => undefined);
   }, []);
-  useEffect(() => { json("/api/desktop/integrations").then(data => setIntegrationHints(Object.fromEntries(Object.entries(data.settings || {}).map(([key, value]) => [key, (value as { hint?: string }).hint || null])))).catch(() => undefined); }, []);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       try {
@@ -281,7 +278,6 @@ export function SettingsPanel({
       setAiBusy(false);
     }
   };
-  const saveIntegrationKeys = async () => { await json("/api/desktop/integrations", { method: "PUT", body: JSON.stringify(integrationKeys) }); setIntegrationKeys({ amapWebServiceKey: "", amapJsKey: "", amapSecurityCode: "", uapiKey: "" }); onMessage("地图与天气密钥已加密保存"); };
   const savePreferences = () => {
     void json("/api/desktop/preferences", { method: "PUT", body: JSON.stringify(preferences) });
     window.dispatchEvent(new Event("lvji:preferences"));
@@ -515,11 +511,6 @@ export function SettingsPanel({
               <p className="credential-note">
                 API Key 仅在服务端加密保存，不会显示在页面或导出文件中。
               </p>
-              <h2>地图与天气</h2>
-              <div className="settings-fields">
-                {[["amapWebServiceKey","高德 Web Service Key"],["amapJsKey","高德 JS API Key"],["amapSecurityCode","高德安全密钥"],["uapiKey","UAPI Key"]].map(([key,label]) => <label key={key}>{label}<input type="password" value={integrationKeys[key as keyof typeof integrationKeys]} placeholder={integrationHints[key] || "未配置"} autoComplete="new-password" onChange={event => setIntegrationKeys(current => ({ ...current, [key]: event.target.value }))}/></label>)}
-              </div>
-              <div className="ai-actions"><button className="accent" onClick={() => void saveIntegrationKeys()}>保存地图与天气设置</button></div>
             </section>
           )}
           {tab === "mcp" && (
