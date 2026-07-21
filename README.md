@@ -1,149 +1,70 @@
-# 旅迹 · AI 旅行规划工作台
+# AI Trip Planner（旅迹）
 
-一个以 AI 对话驱动的旅行规划 Web 应用。旅迹将目的地、日期、预算和偏好转化为可编辑的逐日行程，并通过地图、天气以及 MCP 外部服务补充真实旅行信息。
+AI Trip Planner 是一个 Apache-2.0 许可的旅行规划应用。本分支 `drfccv/electron-local` 提供 Windows Electron 单机版；GitHub `main` 分支继续维护 Web/Cloudflare 版，两者不会合并运行时数据。
 
-> 当前版本面向 Cloudflare/Sites 运行环境，使用 D1 保存数据。项目不会在外部服务不可用时生成虚假的搜索结果。
+## 本地桌面架构
 
-## 功能特性
+Renderer 复用现有 React UI，通过可替换的 Client/transport 接口调用最小权限 preload。Preload 仅暴露白名单方法；Electron Main 负责 Zod 输入校验、业务 Service、SQLite、AI/MCP 网络请求、系统文件选择器和 `safeStorage`。React 组件不接触 Electron、Node 文件 API、SQLite 连接或完整密钥。
 
-- **AI 行程规划**：根据目的地、日期、人数、预算和旅行偏好生成或调整方案。
-- **逐日行程管理**：管理景点、交通、住宿、用餐、时间和费用等安排。
-- **对话式修改**：识别确认、修订和取消意图，避免误写入尚未确认的方案。
-- **地图与天气**：接入高德地图及天气服务，为行程提供位置与出行参考。
-- **MCP 工具扩展**：支持 12306、搜索、酒店、机票等 Streamable HTTP MCP Server。
-- **版本与冲突保护**：提供版本快照、乐观并发、幂等操作和锁定安排保护。
-- **日历导出**：将包含日期和时间的行程导出为日历事件。
-- **用户数据隔离**：所有服务端读写都根据可信用户身份校验数据归属。
+桌面窗口启用 `contextIsolation`、`sandbox` 和 `webSecurity`，关闭 Node integration；生产版默认禁用 DevTools。外部链接仅允许 HTTPS 白名单域名。MCP URL 继续阻止回环、私网、链路本地和云元数据地址。
 
-## 技术栈
+## 数据和密钥
 
-- React 19、Next.js 16、TypeScript
-- Vinext、Vite、Cloudflare Workers
-- Cloudflare D1、Drizzle ORM
-- Zod、React Markdown、Lucide React
-- Node.js Test Runner、ESLint
-
-## 快速开始
-
-### 环境要求
-
-- Node.js 22.13 或更高版本
-- pnpm（推荐）或 npm
-
-### 安装与启动
-
-```bash
-git clone https://github.com/drfccv/AI-Trip-Planner.git
-cd AI-Trip-Planner
-pnpm install
-cp .env.example .env.local
-pnpm dev
-```
-
-Windows PowerShell 可使用：
-
-```powershell
-Copy-Item .env.example .env.local
-pnpm dev
-```
-
-启动后访问 <http://127.0.0.1:4173>。
-
-> `.env.local` 已被 Git 忽略。不要将真实 API Key 写入 `.env.example` 或提交到仓库。
-
-## 环境变量
-
-所有配置均为可选项；未配置的上游能力会返回明确错误或保持不可用状态。
-
-| 变量 | 用途 |
-| --- | --- |
-| `APP_ENCRYPTION_KEY` | 使用 AES-GCM 加密保存 AI/MCP 凭证；生产环境保存密钥时必须配置高强度值 |
-| `AI_PROVIDER` | AI 服务商标识，默认使用 OpenAI-compatible 协议 |
-| `AI_BASE_URL` | OpenAI-compatible API 地址 |
-| `AI_API_KEY` | AI 服务密钥 |
-| `AI_MODEL` | 默认模型名称 |
-| `AMAP_WEB_SERVICE_KEY` | 高德 Web 服务端 Key |
-| `NEXT_PUBLIC_AMAP_JS_KEY` | 高德地图 JavaScript API Key |
-| `AMAP_JS_SECURITY_CODE` | 高德地图 JavaScript API 安全密钥 |
-| `UAPI_API_KEY` | UAPI Key；留空时使用可用的访客额度 |
-| `MCP_12306_URL` | 12306 MCP Server 地址 |
-| `MCP_12306_API_KEY` | 12306 MCP 凭证 |
-| `MCP_SEARXNG_URL` | SearXNG MCP Server 地址 |
-| `MCP_AMAP_URL` | 高德 MCP Server 地址 |
-| `MCP_TAVILY_URL` / `TAVILY_API_KEY` | Tavily MCP 地址和凭证 |
-| `MCP_DIDA_URL` / `MCP_DIDA_FLIGHT_URL` | RollingGo 酒店和机票 MCP 地址 |
-| `DIDA_API_KEY` / `ROLLINGGO_API_KEY` | RollingGo 兼容凭证 |
-
-## 数据库与本地开发
-
-生产环境使用 Cloudflare D1，保存用户、行程、每日安排、地点、路线、AI 任务、MCP 配置、操作记录和版本快照。
-
-数据库结构定义位于 `db/schema.ts`，迁移文件位于 `drizzle/`。生成新的 Drizzle migration：
-
-```bash
-pnpm db:generate
-```
-
-本地开发由 Wrangler/Miniflare 提供模拟 D1，状态通常保存在 `.wrangler/`。该目录只用于本机开发且已被 Git 忽略；本地数据与线上 D1 不会自动同步。
-
-仓库不会提交 `.openai/hosting.json`。该文件不存在时，开发服务器会自动创建名为 `DB` 的本地模拟 D1 binding，无需手动补充站点配置。
-
-## MCP Gateway 与安全
-
-应用支持无认证、Bearer Token 和自定义 Authorization 三种 MCP 认证方式。MCP Gateway 会：
-
-- 只允许公开 HTTPS 目标；
-- 阻止回环、私网、链路本地和云元数据地址；
-- 限制重定向、请求超时和响应体积；
-- 仅在服务端解密并发送凭证；
-- 在列表接口中只返回密钥掩码。
-
-仅使用无认证 MCP 时不需要设置 `APP_ENCRYPTION_KEY`，应用也不会发送 `Authorization` Header。
-
-## 数据一致性
-
-- AI 与手工修改统一经过 `preview → apply` 流程。
-- 提交操作必须携带当前 `revision` 和 `idempotencyKey`。
-- 并发版本冲突返回 HTTP 409。
-- 锁定的安排不能被修改、移动或删除。
-- 重要修改会生成版本快照，支持回退。
-
-## 质量检查
-
-提交代码前建议运行：
-
-```bash
-pnpm test
-pnpm lint
-pnpm build
-```
-
-测试覆盖行程领域规则、计划分发、模型推理参数、日历导出、Markdown 处理和 MCP 安全策略。
-
-## 项目结构
+Windows 数据库默认位于：
 
 ```text
-app/                 页面、组件和 API Routes
-db/                  Drizzle Schema 与数据库入口
-drizzle/             数据库迁移
-lib/ai/              AI 规划、任务和意图分发
-lib/mcp/             MCP 注册、网关、安全与审计
-lib/trips/           行程序列化与操作规则
-tests/               自动化测试
-worker/              Cloudflare Worker 入口
+%APPDATA%\AI Trip Planner\data\trip-planner.db
 ```
 
-## 部署说明
+数据库启用外键、WAL 和 busy timeout，启动时在 transaction 中自动执行未应用 migration。应用使用单实例锁，退出时关闭连接。
 
-生产部署需要提供：
+API Key 由 Electron Main 使用 `safeStorage` 加密后写入 SQLite。Windows 下它使用当前系统账户的保护能力。Renderer 只读取“已配置”和掩码，不会收到完整密钥。`safeStorage` 适合个人本地应用，但不等同于服务器级的密钥隔离；能控制当前 Windows 账户及应用进程的主体仍可能访问数据。
 
-1. Cloudflare Worker 兼容运行环境；
-2. 名为 `DB` 的 D1 binding；
-3. 所需的 AI、地图和 MCP 环境变量；
-4. 能够注入可信用户身份的认证层。
+普通 JSON 行程备份不包含 AI/MCP 密钥。导入前会验证格式并自动复制当前数据库作为安全备份，路径只由系统文件选择器决定。
 
-仓库不包含具体站点 ID、部署凭证或生产密钥。部署平台的本地配置应保存在被 Git 忽略的 `.openai/` 等目录中。
+## 从源码运行
+
+要求 Node.js 22.13+ 与 pnpm：
+
+```powershell
+pnpm install
+pnpm rebuild better-sqlite3
+pnpm desktop:dev
+```
+
+桌面命令：
+
+```powershell
+pnpm desktop:test
+pnpm desktop:build
+pnpm desktop:package
+```
+
+`desktop:package` 使用 electron-builder 生成 Windows NSIS 安装包，并针对 Electron ABI rebuild `better-sqlite3`。安装后的应用自带运行时，不要求用户安装 Node.js、pnpm、Wrangler 或 Miniflare。
+
+Web 版仍可使用原有 `pnpm dev`、`pnpm test` 和 `pnpm build` 命令；桌面正式运行时不启动 Web Worker、不读取 D1，也不使用托管身份 Header。
+
+## 桌面功能
+
+- 行程列表、创建、编辑、删除、时间轴和日历导出
+- preview → apply、乐观并发、幂等重放、版本快照和锁定保护
+- OpenAI-compatible Provider、模型及思考模式
+- 本地 AI Job 状态、方案确认、结构化变更与取消
+- MCP 配置、连接测试、工具发现和 SSRF 防护
+- 窗口状态、单实例、应用菜单、数据目录入口和关于页
+- JSON 行程备份导出与验证恢复
+
+## Windows 安装
+
+运行 `pnpm desktop:package` 后，在 `release` 目录找到 NSIS 安装程序。安装后从开始菜单或桌面快捷方式启动。卸载应用不会主动删除用户数据目录，便于重新安装后恢复。
+
+## 已知限制
+
+- 当前不包含自动更新服务。
+- 普通行程备份不包含凭证；换机后需重新填写密钥。
+- 自定义外部网页不会在应用内打开，只有明确白名单链接可交给系统浏览器。
+- AI 与 MCP 在线能力仍要求用户自己的 Provider/服务可访问。
 
 ## License
 
-本项目采用 [Apache License 2.0](LICENSE) 开源许可证。
+Apache-2.0。详见 [LICENSE](./LICENSE)。

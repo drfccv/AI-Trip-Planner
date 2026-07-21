@@ -2,6 +2,7 @@
   "name": "lvji-ai-trip-planner",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/main/index.cjs",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -12,8 +13,17 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs",
     "db:generate": "drizzle-kit generate"
+    ,"desktop:renderer": "vite --config vite.renderer.config.ts --host 127.0.0.1 --port 5173"
+    ,"desktop:main:watch": "tsup --watch"
+    ,"predesktop:dev": "electron-rebuild -f -w better-sqlite3"
+    ,"desktop:dev": "concurrently -k \"pnpm desktop:renderer\" \"pnpm desktop:main:watch\" \"wait-on tcp:5173 file:dist/main/index.cjs && cross-env DESKTOP_RENDERER_URL=http://127.0.0.1:5173 electron .\""
+    ,"desktop:build": "tsup && vite build --config vite.renderer.config.ts && tsc -p tsconfig.desktop.json"
+    ,"desktop:package": "pnpm desktop:build && electron-builder --win nsis"
+    ,"predesktop:test": "pnpm rebuild better-sqlite3"
+    ,"desktop:test": "tsx --test tests/desktop-*.test.ts"
   },
   "dependencies": {
+    "better-sqlite3": "^12.11.1",
     "drizzle-orm": "0.45.2",
     "lucide-react": "^1.25.0",
     "next": "16.2.6",
@@ -26,20 +36,40 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
     "@tailwindcss/postcss": "4.2.1",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "concurrently": "^10.0.3",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "0.31.10",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
     "vite": "8.0.13",
+    "wait-on": "^9.0.10",
     "wrangler": "4.92.0"
   },
-  "type": "module"
+  "type": "module",
+  "pnpm": { "onlyBuiltDependencies": ["better-sqlite3","electron"] },
+  "build": {
+    "appId": "com.drfccv.aitripplanner",
+    "productName": "AI Trip Planner",
+    "asar": true,
+    "asarUnpack": ["node_modules/better-sqlite3/**"],
+    "directories": { "output": "release" },
+    "files": ["dist/**","package.json","node_modules/better-sqlite3/**","node_modules/bindings/**","node_modules/file-uri-to-path/**"],
+    "win": { "target": ["nsis"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true },
+    "npmRebuild": true
+  }
 }

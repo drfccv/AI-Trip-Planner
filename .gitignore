@@ -39,6 +39,12 @@ yarn-error.log*
 # typescript
 next-env.d.ts
 /dist/
+/release/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.tsbuildinfo
 /.wrangler/
 /outputs/
 /work/

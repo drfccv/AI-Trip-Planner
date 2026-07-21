@@ -49,6 +49,7 @@ type AiJob = {
   attempts: number;
   activity: JobActivity[];
   updatedAt: string;
+  createdAt: string;
   result: Proposal | null;
   error: string | null;
 };
