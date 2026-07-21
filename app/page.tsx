@@ -33,7 +33,6 @@ import "./dashboard-polish.css";
 import "./planning-fields.css";
 import "./job-progress.css";
 import "./motion.css";
-import { appRequest } from "@/renderer/app/transport";
 
 type TripItem = {
   id: string;
@@ -140,7 +139,14 @@ const errorText: Record<string, string> = {
 };
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await appRequest(url, options);
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options?.headers || {}),
+    },
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok)
     throw new Error(

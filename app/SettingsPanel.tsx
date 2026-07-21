@@ -9,7 +9,6 @@ import {
   type UserTravelPreferences,
 } from "@/lib/user-preferences";
 import "./settings-product.css";
-import { appRequest } from "@/renderer/app/transport";
 
 type Tab = "preferences" | "ai" | "mcp" | "privacy";
 type Server = {
@@ -53,7 +52,14 @@ const providerPresets: Record<string, { baseUrl: string; model: string }> = {
 };
 
 async function json(url: string, options?: RequestInit) {
-  const response = await appRequest(url, options);
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options?.headers || {}),
+    },
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "请求失败");
   return data;

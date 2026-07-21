@@ -1,1 +1,0 @@
-import{defineConfig}from"tsup";export default defineConfig({entry:{"main/index":"desktop/main/index.ts","preload/index":"desktop/preload/index.ts"},format:["cjs"],outDir:"dist",outExtension:()=>({js:".cjs"}),target:"node22",platform:"node",bundle:true,sourcemap:true,clean:false,external:["electron","better-sqlite3"],noExternal:["zod"]});
