@@ -84,7 +84,9 @@ export async function POST(request: Request) {
     )[0];
     const auth = requestIdentityHeaders(request);
     const origin = new URL(request.url).origin;
-    after(() => runAiJobLoop(id, user.id, auth, origin));
+    if (request.headers.get("x-desktop-runtime") === "1")
+      void runAiJobLoop(id, user.id, auth, origin);
+    else after(() => runAiJobLoop(id, user.id, auth, origin));
     return Response.json({ job: publicAiJob(job) }, { status: 202 });
   } catch (error) {
     const message =

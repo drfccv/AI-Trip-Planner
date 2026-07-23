@@ -6,6 +6,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const auth = requestIdentityHeaders(request);
   const origin = new URL(request.url).origin;
-  after(() => runAiJobLoop(id, user.id, auth, origin));
+  if (request.headers.get("x-desktop-runtime") === "1")
+    void runAiJobLoop(id, user.id, auth, origin);
+  else after(() => runAiJobLoop(id, user.id, auth, origin));
   return Response.json({ started: true }, { status: 202 });
 }
