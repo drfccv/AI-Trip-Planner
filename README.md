@@ -1,12 +1,8 @@
-<p align="center">
-	<img src="https://raw.githubusercontent.com/drfccv/lvji-travel/drfccv/electron-local/desktop/assets/icon.svg" alt="旅迹图标" width="96" />
-</p>
-
-<h1 align="center">旅迹 · AI 旅行规划工作台</h1>
+# 旅迹 · AI 旅行规划工作台
 
 一个以 AI 对话驱动的旅行规划 Web 应用。旅迹将目的地、日期、预算和偏好转化为可编辑的逐日行程，并通过地图、天气以及 MCP 外部服务补充真实旅行信息。
 
-**项目 Demo：** [https://drfccv.github.io/lvji-travel/](https://drfccv.github.io/lvji-travel/)
+**在线示例：** [https://lvji.liuyuan.top/](https://lvji.liuyuan.top/)
 
 ![旅迹首页截图](https://picui.ogmua.cn/s1/2026/07/21/6a5ee653883d9.webp)
 
@@ -140,18 +136,3 @@ lib/ai/              AI 规划、任务和意图分发
 lib/mcp/             MCP 注册、网关、安全与审计
 lib/trips/           行程序列化与操作规则
 tests/               自动化测试
-```
-
-## 部署说明
-
-普通 Node 服务器部署需要提供：
-
-1. Node.js 22.13 或更高版本；
-2. PostgreSQL 18 数据库和 `DATABASE_URL`；
-3. 高强度 `APP_ENCRYPTION_KEY`；
-4. 执行 `pnpm install --frozen-lockfile && pnpm db:migrate && pnpm build && pnpm start`。
-
-
-## License
-
-本项目采用 [Apache License 2.0](LICENSE) 开源许可证。
