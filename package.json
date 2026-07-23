@@ -1,6 +1,12 @@
 {
   "name": "lvji-ai-trip-planner",
   "version": "0.1.0",
+  "description": "AI-assisted travel planning desktop application",
+  "author": {
+    "name": "drfccv",
+    "email": "2713587802@qq.com"
+  },
+  "desktopName": "lvji",
   "private": true,
   "packageManager": "pnpm@10.10.0",
   "main": "dist/main/index.cjs",
@@ -111,6 +117,8 @@
     "linux": {
       "icon": "desktop/assets/icon.png",
       "category": "Utility",
+      "maintainer": "drfccv <2713587802@qq.com>",
+      "syncDesktopName": true,
       "target": [
         "AppImage",
         "deb"
