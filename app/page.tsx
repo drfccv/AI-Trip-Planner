@@ -19,6 +19,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { AiAssistant } from "./AiAssistant";
 import { FormChoiceField, PaceField, TravelDateField } from "./PlanningFields";
 import { buildTripCalendar } from "@/lib/calendar";
+import { demoApi, resetDemoData } from "@/lib/demo-api";
 import {
   defaultTravelPreferences,
   travelPreferencesKey,
@@ -139,6 +140,8 @@ const errorText: Record<string, string> = {
 };
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true")
+    return demoApi<T>(url, options);
   const response = await fetch(url, {
     cache: "no-store",
     ...options,
@@ -160,6 +163,7 @@ function Mark() {
 }
 
 export default function App() {
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [trips, setTrips] = useState<Trip[]>([]);
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -1164,17 +1168,37 @@ export default function App() {
       )}
 
       {screen === "settings" && (
-        <SettingsPanel
-          dark={dark}
-          onThemeChange={setDark}
-          onDataDeleted={() => {
-            setTrip(null);
-            setTrips([]);
-            setScreen("dashboard");
-            void loadTrips();
-          }}
-          onMessage={toast}
-        />
+        demoMode ? (
+          <section className="shell">
+            <span className="kicker">DEMO SETTINGS</span>
+            <h1>本地演示设置</h1>
+            <p>当前页面不会连接数据库或调用真实 AI，所有修改只保存在这个浏览器中。</p>
+            <button
+              className="accent"
+              onClick={() => {
+                resetDemoData();
+                setTrip(null);
+                setScreen("dashboard");
+                void loadTrips();
+                toast("示例行程和 AI 对话已恢复");
+              }}
+            >
+              恢复初始示例数据
+            </button>
+          </section>
+        ) : (
+          <SettingsPanel
+            dark={dark}
+            onThemeChange={setDark}
+            onDataDeleted={() => {
+              setTrip(null);
+              setTrips([]);
+              setScreen("dashboard");
+              void loadTrips();
+            }}
+            onMessage={toast}
+          />
+        )
       )}
       {versionsOpen && (
         <div className="overlay" onClick={() => setVersionsOpen(false)}>

@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 4173",
     "build": "next build",
+    "build:pages": "node scripts/build-pages-demo.mjs",
+    "preview:pages": "node scripts/preview-pages.mjs",
     "start": "next start --hostname 0.0.0.0 --port 4173",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work --ignore-pattern outputs",
