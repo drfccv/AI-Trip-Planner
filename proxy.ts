@@ -27,6 +27,12 @@ export async function proxy(request: NextRequest) {
   headers.set(HEADER, id);
   headers.set("cookie", `${request.headers.get("cookie") || ""}; ${COOKIE}=${value}`);
   const response = NextResponse.next({ request: { headers } });
+  if (!request.nextUrl.pathname.startsWith("/api/")) {
+    response.headers.set(
+      "cache-control",
+      "private, no-store, no-cache, must-revalidate",
+    );
+  }
   if (!valid) response.cookies.set(COOKIE, value, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 31536000 });
   return response;
 }

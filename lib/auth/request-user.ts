@@ -10,6 +10,20 @@ export type RequestUser = {
   anonymous: boolean;
 };
 
+const forwardedIdentityHeaders = [
+  "oai-authenticated-user-email",
+  "oai-authenticated-user-full-name",
+  "x-lvji-anonymous-id",
+  "cookie",
+] as const;
+
+export const requestIdentityHeaders = (request: Request) =>
+  Object.fromEntries(
+    forwardedIdentityHeaders
+      .map((name) => [name, request.headers.get(name) || ""])
+      .filter(([, value]) => value),
+  );
+
 const digest = async (value: string) =>
   Array.from(
     new Uint8Array(

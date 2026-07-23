@@ -1,9 +1,10 @@
 "use client";
 
 import { applyOperations, type TripOperation } from "@/lib/trips/operations";
+import { demoJobSeeds, demoTripSeeds } from "@/lib/demo-seeds.generated";
 
-const TRIPS_KEY = "lvji-original-ui-demo-trips-v1";
-const JOBS_KEY = "lvji-original-ui-demo-jobs-v1";
+const TRIPS_KEY = "lvji-current-trips-demo-v2";
+const JOBS_KEY = "lvji-current-conversations-demo-v2";
 
 type Json = Record<string, unknown>;
 type DemoJob = {
@@ -50,123 +51,7 @@ const day = (date: string, index: number, title: string, items: Json[]) => {
 };
 
 function seeds() {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: id(),
-      title: "杭州慢游三日",
-      destination: "杭州",
-      startDate: "2026-10-02",
-      endDate: "2026-10-04",
-      status: "planning",
-      revision: 3,
-      currency: "CNY",
-      budgetTotal: 3600,
-      constraints: { travelers: 2, pace: "relaxed", perPersonBudget: 1800 },
-      createdAt: now,
-      days: [
-        day("2026-10-02", 1, "湖畔初见", [
-          {
-            type: "景点",
-            title: "西湖苏堤漫步",
-            startTime: "10:00",
-            durationMinutes: 120,
-            cost: 0,
-            notes: "从北山街进入，沿苏堤慢慢走。",
-            metadata: {
-              imageUrl:
-                "https://images.unsplash.com/photo-1599571234909-29ed5d1321d6?auto=format&fit=crop&w=1200&q=80",
-              introduction: "以湖光、长堤和远山为主线，适合抵达后的轻松散步。",
-            },
-          },
-          {
-            type: "用餐",
-            title: "龙井村品茶",
-            startTime: "14:30",
-            durationMinutes: 90,
-            cost: 180,
-            notes: "体验一杯当季龙井。",
-            metadata: {
-              introduction: "在茶园附近停留，了解龙井茶的产区与冲泡方式。",
-            },
-          },
-        ]),
-        day("2026-10-03", 2, "寺院与山林", [
-          {
-            type: "景点",
-            title: "灵隐寺",
-            startTime: "09:00",
-            durationMinutes: 150,
-            cost: 90,
-            notes: "避开午间人流，预留步行时间。",
-            metadata: {
-              imageUrl:
-                "https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=1200&q=80",
-              introduction: "沿飞来峰造像与寺院建筑游览，环境清幽。",
-            },
-          },
-          {
-            type: "自由活动",
-            title: "九溪烟树",
-            startTime: "15:00",
-            durationMinutes: 150,
-            cost: 0,
-            notes: "穿舒适的鞋，沿溪谷徒步。",
-          },
-        ]),
-        day("2026-10-04", 3, "运河旧时光", [
-          {
-            type: "景点",
-            title: "小河直街",
-            startTime: "10:00",
-            durationMinutes: 120,
-            cost: 80,
-            notes: "逛手作店，吃一份片儿川。",
-          },
-        ]),
-      ],
-    },
-    {
-      id: id(),
-      title: "泉州古城寻迹",
-      destination: "泉州",
-      startDate: "2026-11-14",
-      endDate: "2026-11-15",
-      status: "planning",
-      revision: 2,
-      currency: "CNY",
-      budgetTotal: 2200,
-      constraints: { travelers: 2, pace: "balanced", perPersonBudget: 1100 },
-      createdAt: now,
-      days: [
-        day("2026-11-14", 1, "刺桐旧梦", [
-          {
-            type: "景点",
-            title: "开元寺",
-            startTime: "09:30",
-            durationMinutes: 120,
-            cost: 0,
-            notes: "看东西塔与古船陈列馆。",
-            metadata: {
-              imageUrl:
-                "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80",
-              introduction: "从古城重要地标开始，步行衔接西街与钟楼。",
-            },
-          },
-        ]),
-        day("2026-11-15", 2, "海风与石厝", [
-          {
-            type: "自由活动",
-            title: "蟳埔村",
-            startTime: "10:00",
-            durationMinutes: 150,
-            cost: 120,
-            notes: "体验簪花围，尊重当地生活。",
-          },
-        ]),
-      ],
-    },
-  ];
+  return structuredClone(demoTripSeeds) as Json[];
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -181,46 +66,10 @@ const trips = () => read<Json[]>(TRIPS_KEY, seeds());
 const writeTrips = (value: Json[]) =>
   localStorage.setItem(TRIPS_KEY, JSON.stringify(value));
 function seedJobs(allTrips: Json[]): DemoJob[] {
-  const now = new Date().toISOString();
-  const make = (trip: Json, prompt: string, message: string): DemoJob => ({
-    id: id(),
-    tripId: String(trip.id),
-    prompt,
-    mode: "conversation",
-    status: "completed",
-    stage: "completed",
-    progress: 100,
-    attempts: 0,
-    activity: [
-      { kind: "assistant", status: "completed", title: "示例回复已生成" },
-    ],
-    createdAt: now,
-    updatedAt: now,
-    result: { message, operations: [] },
-    error: null,
-  });
-  return allTrips.flatMap((trip, index) =>
-    index === 0
-      ? [
-          make(
-            trip,
-            "我们想走得松弛一点，也希望体验杭州的茶文化。",
-            "我把每天控制在两个主要安排以内：第一天沿西湖慢行并去龙井村品茶；第二天安排灵隐寺和九溪，最后一天在运河街区收尾。",
-          ),
-          make(
-            trip,
-            "第二天不要太早，灵隐寺附近午餐有什么建议？",
-            "可以在 09:00 后入园。午餐建议在天竺路一带选择杭帮素食或面馆，预留约 90 分钟，再前往九溪。",
-          ),
-        ]
-      : [
-          make(
-            trip,
-            "第一次去泉州，两天时间想重点看世界遗产。",
-            "建议第一天以古城中轴为主，从开元寺步行串联西街与钟楼；第二天前往蟳埔村感受海丝文化。",
-          ),
-        ],
-  );
+  const tripIds = new Set(allTrips.map((trip) => String(trip.id)));
+  return structuredClone(demoJobSeeds).filter((job) =>
+    tripIds.has(job.tripId),
+  ) as DemoJob[];
 }
 const jobs = () => read<DemoJob[]>(JOBS_KEY, seedJobs(trips()));
 const writeJobs = (value: DemoJob[]) =>

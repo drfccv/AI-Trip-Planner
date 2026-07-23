@@ -4,6 +4,7 @@ import { aiSettings } from "@/db/schema";
 import { requireRequestUser } from "@/lib/auth/request-user";
 import { decryptSecret, encryptSecret } from "@/lib/mcp/store";
 import { assertSafeMcpUrl, redactSecret } from "@/lib/mcp/security";
+import { modelCall } from "@/lib/ai/planner";
 
 const defaults = {
   provider: "openai-compatible",
@@ -133,7 +134,56 @@ export async function POST(request: Request) {
     if (response.status === 404)
       throw new Error("API 地址不正确：未找到 /models 接口");
     if (!response.ok) throw new Error(`模型服务连接失败（HTTP ${response.status}）`);
-    return Response.json({ ok: true, model: row.model });
+    const probe = await modelCall(
+      {
+        provider: row.provider,
+        base,
+        model: row.model,
+        key,
+        thinkingEnabled: false,
+      },
+      [
+        {
+          role: "user",
+          content:
+            "这是 Function Calling 兼容性测试。必须调用 compatibility_probe 工具一次，参数 value 必须为 ok；不要直接回答文本。",
+        },
+      ],
+      [
+        {
+          type: "function",
+          function: {
+            name: "compatibility_probe",
+            description:
+              "用于验证当前模型能否按照 OpenAI-compatible Function Calling 协议返回工具调用。",
+            parameters: {
+              type: "object",
+              additionalProperties: false,
+              properties: { value: { type: "string", enum: ["ok"] } },
+              required: ["value"],
+            },
+          },
+        },
+      ],
+      false,
+      30000,
+      undefined,
+      128,
+      true,
+    );
+    if (
+      !probe.toolCalls.some(
+        (call) => call.function.name === "compatibility_probe",
+      )
+    )
+      throw new Error(
+        "连接成功，但当前模型没有返回工具调用；请换用支持 Function Calling 的模型",
+      );
+    return Response.json({
+      ok: true,
+      model: row.model,
+      toolCalling: true,
+    });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "AI 连接失败" },

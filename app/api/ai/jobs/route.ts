@@ -1,9 +1,14 @@
 import { and, desc, eq } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { aiJobs, trips } from "@/db/schema";
 import { publicAiJob } from "@/lib/ai/job-public";
-import { requireRequestUser } from "@/lib/auth/request-user";
+import { runAiJobLoop } from "@/lib/ai/jobs";
+import {
+  requestIdentityHeaders,
+  requireRequestUser,
+} from "@/lib/auth/request-user";
 
 const input = z.object({
   tripId: z.string().uuid(),
@@ -38,16 +43,6 @@ const input = z.object({
     .max(30)
     .optional(),
 });
-const auth = (request: Request) =>
-  Object.fromEntries(
-    ["oai-authenticated-user-email", "oai-authenticated-user-full-name", "cookie"]
-      .map((name) => [name, request.headers.get(name) || ""])
-      .filter(([, value]) => value),
-  );
-const schedule = (promise: Promise<unknown>) => {
-  void promise;
-};
-
 export async function POST(request: Request) {
   try {
     const user = await requireRequestUser(request);
@@ -84,15 +79,12 @@ export async function POST(request: Request) {
         stage: body.mode === "format" ? "preparing_format" : "discovering_mcp",
         contextJson,
       });
-    schedule(
-      fetch(`${new URL(request.url).origin}/api/ai/jobs/${id}/advance`, {
-        method: "POST",
-        headers: auth(request),
-      }),
-    );
     const job = (
       await getDb().select().from(aiJobs).where(eq(aiJobs.id, id)).limit(1)
     )[0];
+    const auth = requestIdentityHeaders(request);
+    const origin = new URL(request.url).origin;
+    after(() => runAiJobLoop(id, user.id, auth, origin));
     return Response.json({ job: publicAiJob(job) }, { status: 202 });
   } catch (error) {
     const message =

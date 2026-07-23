@@ -15,7 +15,10 @@ import {
   Square,
   Settings,
   Sparkles,
+  Network,
+  TriangleAlert,
   Undo2,
+  Wrench,
 } from "lucide-react";
 
 type Proposal = {
@@ -49,9 +52,13 @@ type AiJob = {
   attempts: number;
   activity: JobActivity[];
   createdAt: string;
+  createdAtMs: number;
   updatedAt: string;
   result: Proposal | null;
   error: string | null;
+  streamingContent: string | null;
+  streamingContentChars: number;
+  streamingToolCalls: number;
 };
 
 const markdownComponents: Components = {
@@ -67,10 +74,20 @@ const markdownComponents: Components = {
 };
 const markdownPlugins = [remarkGfm];
 const jobTimestamp = (value: string) => {
-  const normalized = /Z$|[+-]\d\d:\d\d$/.test(value)
-    ? value
-    : `${value.replace(" ", "T")}Z`;
-  return new Date(normalized).getTime();
+  const normalized = value.replace(" ", "T");
+  const timestamp = Date.parse(
+    /Z$|[+-]\d\d(?::?\d\d)?$/.test(normalized)
+      ? normalized
+      : `${normalized}Z`,
+  );
+  return Number.isFinite(timestamp) ? timestamp : Date.now();
+};
+const elapsedJobSeconds = (clock: number, job: AiJob) => {
+  const startedAt = Number.isFinite(job.createdAtMs)
+    ? job.createdAtMs
+    : jobTimestamp(job.createdAt);
+  const elapsed = Math.floor((clock - startedAt) / 1000);
+  return Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
 };
 
 export function AiAssistant({
@@ -619,7 +636,7 @@ export function AiAssistant({
               </span>
               <small>
                 {job?.createdAt
-                  ? `已用时 ${Math.max(0, Math.floor((clock - jobTimestamp(job.createdAt)) / 1000))} 秒 · ${job.progress}%`
+                  ? `已用时 ${elapsedJobSeconds(clock, job)} 秒 · ${job.progress}%`
                   : "正在启动"}
               </small>
             </header>
@@ -639,12 +656,12 @@ export function AiAssistant({
                 >
                   <i>
                     {event.kind === "tool"
-                      ? "工"
+                      ? <Wrench aria-hidden="true" />
                       : event.kind === "system"
-                        ? "系"
+                        ? <Network aria-hidden="true" />
                         : event.kind === "warning"
-                          ? "!"
-                          : "AI"}
+                          ? <TriangleAlert aria-hidden="true" />
+                          : <Sparkles aria-hidden="true" />}
                   </i>
                   <div>
                     <b>{event.title}</b>
@@ -657,6 +674,25 @@ export function AiAssistant({
                   )}
                 </article>
               ))}
+              {job?.streamingContent && (
+                <div className="job-stream-preview markdown-body">
+                  <ReactMarkdown
+                    remarkPlugins={markdownPlugins}
+                    components={markdownComponents}
+                  >
+                    {normalizeMarkdownTables(job.streamingContent)}
+                  </ReactMarkdown>
+                </div>
+              )}
+              {!job?.streamingContent &&
+                Boolean(job?.streamingContentChars) && (
+                  <div className="job-stream-count">
+                    已接收 {job!.streamingContentChars.toLocaleString()} 个生成字符
+                    {job!.streamingToolCalls
+                      ? ` · 正在组装 ${job!.streamingToolCalls} 个工具调用`
+                      : ""}
+                  </div>
+                )}
             </div>
             <footer>
               <span>

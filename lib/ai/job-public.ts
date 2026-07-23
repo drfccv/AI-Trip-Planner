@@ -1,6 +1,20 @@
 import { aiJobs } from "@/db/schema";
 import type { JobContext } from "./planner";
 
+const timestampMs = (value: string | Date) => {
+  if (value instanceof Date) return value.getTime();
+  const normalized = value
+    .replace(" ", "T")
+    .replace(/([+-]\d\d)$/, "$1:00")
+    .replace(/([+-]\d\d)(\d\d)$/, "$1:$2");
+  const timestamp = Date.parse(
+    /Z$|[+-]\d\d:\d\d$/.test(normalized)
+      ? normalized
+      : `${normalized}Z`,
+  );
+  return Number.isFinite(timestamp) ? timestamp : Date.now();
+};
+
 export function publicAiJob(job: typeof aiJobs.$inferSelect) {
   const context = JSON.parse(job.contextJson || "{}") as JobContext;
   const activity: Array<{
@@ -24,16 +38,18 @@ export function publicAiJob(job: typeof aiJobs.$inferSelect) {
         context.mode === "format"
           ? job.stage === "preparing_format"
             ? "正在准备生成行程变更"
+            : job.stage === "finalizing_itinerary"
+              ? "正在生成最终结构化行程"
             : job.stage === "repairing_response"
               ? "正在校验并修复行程结构"
               : "正在生成逐日安排、通勤与执行字段"
           : job.stage === "discovering_mcp"
             ? "正在连接 MCP 工具"
             : job.stage === "calling_mcp"
-              ? `正在执行第 ${(context.round || 0) + 1} 轮实时调用`
+              ? "正在执行实时工具调用"
               : job.stage === "repairing_response"
                 ? "正在严格校验并修复结构"
-                : `AI 正在分析第 ${(context.round || 0) + 1} 轮下一步行动`,
+                : "AI 正在根据实时结果继续规划",
       detail:
         context.mode === "format"
           ? job.stage === "repairing_response"
@@ -47,7 +63,7 @@ export function publicAiJob(job: typeof aiJobs.$inferSelect) {
                     ? `首次输出未通过完整性校验：${context.structureFailure}`
                     : undefined
             : job.stage === "calling_mcp"
-              ? `正在进行第 ${(context.round || 0) + 1} 轮资料与图片补充`
+              ? "正在补充资料与图片"
               : "正在沿用确认方案生成结构化行程，并按需补充地点介绍与图片"
           : undefined,
     });
@@ -78,7 +94,14 @@ export function publicAiJob(job: typeof aiJobs.$inferSelect) {
     activity,
     result: job.resultJson ? JSON.parse(job.resultJson) : null,
     error: job.error,
+    streamingContent:
+      job.status === "queued" || job.status === "running"
+        ? context.streamingContent || null
+        : null,
+    streamingContentChars: context.streamingContentChars || 0,
+    streamingToolCalls: context.streamingToolCalls || 0,
     createdAt: job.createdAt,
+    createdAtMs: timestampMs(job.createdAt),
     updatedAt: job.updatedAt,
   };
 }

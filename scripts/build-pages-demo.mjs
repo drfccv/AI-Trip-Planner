@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const holding = "work/pages-demo-build";
@@ -11,6 +11,10 @@ mkdirSync(holding, { recursive: true });
 try {
   for (const [from, to] of moves)
     if (existsSync(from)) renameSync(from, to);
+
+  // Development route types still reference app/api after it is temporarily
+  // removed for the static export. Rebuild Next's generated types from scratch.
+  rmSync(".next", { recursive: true, force: true });
 
   const result = spawnSync(
     process.execPath,
