@@ -20,7 +20,7 @@
     "predesktop:package": "electron-rebuild -f -w better-sqlite3",
     "desktop:package": "pnpm desktop:build && electron-builder",
     "predesktop:package:win": "electron-rebuild -f -w better-sqlite3",
-    "desktop:package:win": "pnpm desktop:build && electron-builder --win nsis --x64",
+    "desktop:package:win": "pnpm desktop:build && electron-builder --win nsis portable --x64",
     "predesktop:package:mac": "electron-rebuild -f -w better-sqlite3",
     "desktop:package:mac": "pnpm desktop:build && electron-builder --mac dmg --universal",
     "predesktop:package:linux": "electron-rebuild -f -w better-sqlite3",
@@ -99,8 +99,12 @@
     "win": {
       "icon": "desktop/assets/icon.png",
       "target": [
-        "nsis"
+        "nsis",
+        "portable"
       ]
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}"
     },
     "mac": {
       "icon": "desktop/assets/icon.png",
