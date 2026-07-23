@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[39756,["/lvji-travel/_next/static/chunks/0bn7sb9dt40_4.js"],"default"]
+3:I[37457,["/lvji-travel/_next/static/chunks/0bn7sb9dt40_4.js"],"default"]
+4:[]
+0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"Q9-c6V7qekTh4EPW-ZJ9Q"}

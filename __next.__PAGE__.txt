@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[71162,["/lvji-travel/_next/static/chunks/0bn7sb9dt40_4.js","/lvji-travel/_next/static/chunks/0zsnsq~q~gllr.js"],"default"]
+3:I[97367,["/lvji-travel/_next/static/chunks/0bn7sb9dt40_4.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+:HL["/lvji-travel/_next/static/chunks/0ind1hoz940mw.css","style"]
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{}],[["$","link","0",{"rel":"stylesheet","href":"/lvji-travel/_next/static/chunks/0ind1hoz940mw.css","precedence":"next"}],["$","script","script-0",{"src":"/lvji-travel/_next/static/chunks/0zsnsq~q~gllr.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"Q9-c6V7qekTh4EPW-ZJ9Q"}
+5:null

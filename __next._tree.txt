@@ -1,0 +1,3 @@
+:HL["/lvji-travel/_next/static/chunks/0xoqfjqbevk7o.css","style"]
+:HL["/lvji-travel/_next/static/chunks/0ind1hoz940mw.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}},"staleTime":300,"buildId":"Q9-c6V7qekTh4EPW-ZJ9Q"}
