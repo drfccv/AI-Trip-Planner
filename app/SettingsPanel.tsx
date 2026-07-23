@@ -31,15 +31,87 @@ type Props = {
   onDataDeleted: () => void;
   onMessage: (message: string) => void;
 };
+const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+const demoServers: Server[] = [
+  {
+    id: "amap",
+    name: "高德地图",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: true,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "connected",
+  },
+  {
+    id: "searxng",
+    name: "SearXNG 搜索",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: true,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "connected",
+  },
+  {
+    id: "dida",
+    name: "RollingGo 道旅酒店",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: true,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "connected",
+  },
+  {
+    id: "didaFlight",
+    name: "RollingGo 道旅机票",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: false,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "idle",
+  },
+  {
+    id: "rail12306",
+    name: "铁路 12306",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: false,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "idle",
+  },
+  {
+    id: "tavily",
+    name: "Tavily 搜索",
+    endpoint: "Demo 中隐藏服务地址",
+    enabled: false,
+    permission: "readonly",
+    authMode: "none",
+    source: "builtin",
+    configured: true,
+    status: "idle",
+  },
+];
 const providerPresets: Record<string, { baseUrl: string; model: string }> = {
   "openai-compatible": {
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-5-mini",
   },
-  deepseek: { baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
+  deepseek: {
+    baseUrl: "https://api.deepseek.com/v1",
+    model: "deepseek-v4-flash",
+  },
   siliconflow: {
     baseUrl: "https://api.siliconflow.cn/v1",
-    model: "Qwen/Qwen3-8B",
+    model: "Pro/zai-org/GLM-4.7",
   },
   volcengine: {
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
@@ -95,6 +167,11 @@ export function SettingsPanel({
 
   const load = useCallback(async () => {
     setLoading(true);
+    if (isDemo) {
+      setServers(demoServers);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await json("/api/mcp/servers");
       setServers(
@@ -111,6 +188,17 @@ export function SettingsPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
   useEffect(() => {
+    if (isDemo) {
+      setAi({
+        provider: "deepseek",
+        baseUrl: "https://api.deepseek.com/v1",
+        model: "deepseek-v4-flash",
+        thinkingEnabled: false,
+        configured: true,
+        keyHint: "已配置",
+      });
+      return;
+    }
     json("/api/ai/settings")
       .then((data) => setAi(data.settings))
       .catch(() => undefined);
@@ -271,7 +359,7 @@ export function SettingsPanel({
       }));
       setAiKey("");
       await json("/api/ai/settings", { method: "POST" });
-      onMessage(`AI 模型 ${ai.model} 连接正常`);
+      onMessage(`AI 模型 ${ai.model} 连接及工具调用正常`);
     } catch (error) {
       onMessage(error instanceof Error ? error.message : "AI 连接失败");
     } finally {
@@ -359,6 +447,12 @@ export function SettingsPanel({
           </button>
         </nav>
         <main>
+          {isDemo && (
+            <p className="settings-demo-note">
+              Demo 展示模式 · 设置内容仅供预览，不能修改
+            </p>
+          )}
+          <fieldset className="settings-readonly" disabled={isDemo}>
           {tab === "preferences" && (
             <section className="settings-card">
               <span className="kicker">DEFAULTS</span>
@@ -508,9 +602,6 @@ export function SettingsPanel({
                   保存并测试
                 </button>
               </div>
-              <p className="credential-note">
-                API Key 仅在服务端加密保存，不会显示在页面或导出文件中。
-              </p>
             </section>
           )}
           {tab === "mcp" && (
@@ -633,6 +724,7 @@ export function SettingsPanel({
               </div>
             </section>
           )}
+          </fieldset>
         </main>
       </div>
       {editing &&

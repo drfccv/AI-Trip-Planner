@@ -547,3 +547,4 @@
     border-radius: 0 0 16px 16px;
   }
 }
+.settings-readonly{min-width:0;margin:0;padding:0;border:0}.settings-demo-note{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--muted);font-size:11px}.settings-readonly:disabled{opacity:1}.settings-readonly:disabled input,.settings-readonly:disabled button,.settings-readonly:disabled select,.settings-readonly:disabled textarea{opacity:1;color:inherit;-webkit-text-fill-color:currentColor}.settings-readonly:disabled button,.settings-readonly:disabled label{cursor:default}

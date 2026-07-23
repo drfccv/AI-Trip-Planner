@@ -1,6 +1,6 @@
 services:
   app:
     build: .
-    ports: ["3000:3000"]
-    environment:
-      DEMO_MODE: "true"
+    ports: ["4173:4173"]
+    env_file: .env
+    restart: unless-stopped

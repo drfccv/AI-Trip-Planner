@@ -43,6 +43,13 @@
       "when": 1784487000000,
       "tag": "0005_add_ai_thinking",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784598869878,
+      "tag": "0006_anonymous_limits",
+      "breakpoints": true
     }
   ]
 }
