@@ -1,3 +1,5 @@
+name: lvji-travel
+
 services:
   db:
     image: postgres:18-alpine
