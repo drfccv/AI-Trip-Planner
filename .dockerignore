@@ -1,0 +1,17 @@
+.env
+.env.local
+.env.*.local
+node_modules
+.next
+out
+dist
+.git
+.github
+release
+scripts
+tests
+*.md
+.DS_Store
+
+*.md
+.DS_Store

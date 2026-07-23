@@ -6,4 +6,5 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 EXPOSE 4173
-CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
+
+CMD ["sh", "-c", "export APP_ENCRYPTION_KEY=\"${APP_ENCRYPTION_KEY:-$(node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\")}\" && pnpm db:migrate && exec pnpm start"]

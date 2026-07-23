@@ -1,6 +1,33 @@
 services:
-  app:
-    build: .
-    ports: ["4173:4173"]
-    env_file: .env
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: lvji
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
+
+  app:
+    image: ghcr.io/drfccv/lvji-travel:latest
+    ports:
+      - "${APP_PORT:-4173}:4173"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASS}@db:5432/lvji
+      DATABASE_POOL_SIZE: "10"
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
