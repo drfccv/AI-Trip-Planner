@@ -1,8 +1,12 @@
-# 旅迹 · AI 旅行规划工作台
+<p align="center">
+	<img src="https://raw.githubusercontent.com/drfccv/lvji-travel/drfccv/electron-local/desktop/assets/icon.svg" alt="旅迹图标" width="96" />
+</p>
+
+<h1 align="center">旅迹 · AI 旅行规划工作台</h1>
 
 一个以 AI 对话驱动的旅行规划 Web 应用。旅迹将目的地、日期、预算和偏好转化为可编辑的逐日行程，并通过地图、天气以及 MCP 外部服务补充真实旅行信息。
 
-**在线示例：** [https://lvji.liuyuan.top/](https://lvji.liuyuan.top/)
+**项目 Demo：** [https://drfccv.github.io/lvji-travel/](https://drfccv.github.io/lvji-travel/)
 
 ![旅迹首页截图](https://picui.ogmua.cn/s1/2026/07/21/6a5ee653883d9.webp)
 
@@ -136,7 +140,6 @@ lib/ai/              AI 规划、任务和意图分发
 lib/mcp/             MCP 注册、网关、安全与审计
 lib/trips/           行程序列化与操作规则
 tests/               自动化测试
-worker/              Cloudflare Worker 入口
 ```
 
 ## 部署说明
