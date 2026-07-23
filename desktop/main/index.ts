@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, screen, shell } from "electron";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -8,6 +8,7 @@ import { dispatch } from "../runtime/routes";
 import { exportTrips, importTrips } from "../runtime/backup";
 import { hydrateIntegrations } from "../runtime/integrations-route";
 let mainWindow: BrowserWindow | null = null;
+let shuttingDown = false;
 const token = randomBytes(32).toString("hex"); let origin = "";
 const inputSchema = z.object({ path: z.string().regex(/^\/api\/[A-Za-z0-9_/?=&.%\-]+$/).max(500), method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]), body: z.unknown().optional() });
 const windowActionSchema = z.enum(["minimize", "toggleMaximize", "close", "isMaximized"]);
@@ -23,6 +24,17 @@ else {
     (globalThis as typeof globalThis & { __desktopSecretStore?: unknown }).__desktopSecretStore = { encrypt(value: string) { if (!safeStorage.isEncryptionAvailable()) throw Error("SAFE_STORAGE_UNAVAILABLE"); return "safe:" + safeStorage.encryptString(value).toString("base64"); }, decrypt(value: string) { return safeStorage.decryptString(Buffer.from(value.replace(/^safe:/, ""), "base64")); } }; hydrateIntegrations();
     const server = createServer(async (incoming, outgoing) => { if (incoming.headers["x-desktop-token"] !== token) { outgoing.writeHead(403).end(); return; } const chunks: Buffer[] = []; for await (const chunk of incoming) chunks.push(chunk as Buffer); const request = new Request(origin + (incoming.url || "/"), { method: incoming.method, headers: incoming.headers as HeadersInit, body: incoming.method === "GET" ? undefined : Buffer.concat(chunks) }); const response = await dispatch(request); outgoing.writeHead(response.status, Object.fromEntries(response.headers)); outgoing.end(Buffer.from(await response.arrayBuffer())); });
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve)); const address = server.address(); if (!address || typeof address === "string") throw Error("DESKTOP_SERVER_FAILED"); origin = `http://127.0.0.1:${address.port}`;
+    const shutdown = () => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      try {
+        server.closeAllConnections();
+        server.close();
+        closeDesktopDatabase();
+      } finally {
+        app.exit(0);
+      }
+    };
     ipcMain.handle("desktop:request", async (_event, raw) => { const response = await dispatch(requestFor(inputSchema.parse(raw))); return { status: response.status, data: await response.json().catch(() => ({})) }; });
     const exportBackup = async () => { const result = await dialog.showSaveDialog({ title: "导出行程备份", defaultPath: `ai-trip-planner-${new Date().toISOString().slice(0, 10)}.json`, filters: [{ name: "JSON", extensions: ["json"] }], properties: ["createDirectory", "showOverwriteConfirmation"] }); if (!result.canceled && result.filePath) exportTrips(sqlite, result.filePath); return { cancelled: result.canceled, path: result.filePath }; };
     const importBackup = async () => { const result = await dialog.showOpenDialog({ title: "导入行程备份", filters: [{ name: "JSON", extensions: ["json"] }], properties: ["openFile"] }); if (!result.canceled && result.filePaths[0]) importTrips(sqlite, databasePath(app.getPath("userData")), result.filePaths[0]); return { cancelled: result.canceled, path: result.filePaths[0] }; };
@@ -39,17 +51,35 @@ else {
       if (action === "close") window.close();
       return window.isMaximized();
     });
-    mainWindow = new BrowserWindow({ width: bounds.width || 1280, height: bounds.height || 820, x: bounds.x, y: bounds.y, minWidth: 980, minHeight: 680, frame: false, autoHideMenuBar: true, backgroundColor: "#f5f5f7", icon: join(app.getAppPath(), "desktop/assets/icon.png"), show: false, webPreferences: { preload: join(__dirname, "../preload/index.cjs"), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, devTools: !app.isPackaged } });
+    const display = screen.getDisplayMatching({
+      x: Number.isFinite(bounds.x) ? bounds.x : 0,
+      y: Number.isFinite(bounds.y) ? bounds.y : 0,
+      width: Number.isFinite(bounds.width) ? bounds.width : 1280,
+      height: Number.isFinite(bounds.height) ? bounds.height : 820,
+    });
+    const workArea = display.workArea;
+    const width = Math.min(bounds.width || 1280, workArea.width);
+    const height = Math.min(bounds.height || 820, workArea.height);
+    const x = Math.min(Math.max(bounds.x ?? workArea.x, workArea.x), workArea.x + workArea.width - width);
+    const y = Math.min(Math.max(bounds.y ?? workArea.y, workArea.y), workArea.y + workArea.height - height);
+    mainWindow = new BrowserWindow({ width, height, x, y, minWidth: Math.min(760, workArea.width), minHeight: Math.min(520, workArea.height), frame: false, autoHideMenuBar: true, backgroundColor: "#f5f5f7", icon: join(app.getAppPath(), "desktop/assets/icon.png"), show: false, webPreferences: { preload: join(__dirname, "../preload/index.cjs"), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, devTools: !app.isPackaged } });
     const publishWindowState = () => mainWindow?.webContents.send("desktop:window:maximized", mainWindow.isMaximized());
     mainWindow.on("maximize", publishWindowState); mainWindow.on("unmaximize", publishWindowState);
     if (bounds.maximized) mainWindow.maximize();
     mainWindow.once("ready-to-show", () => mainWindow?.show());
     mainWindow.on("close", () => { if (mainWindow) sqlite.prepare("INSERT INTO desktop_preferences(key,value_json)VALUES('window',?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=CURRENT_TIMESTAMP").run(JSON.stringify({ ...mainWindow.getNormalBounds(), maximized: mainWindow.isMaximized() })); });
+    mainWindow.on("closed", () => { mainWindow = null; });
     mainWindow.webContents.setWindowOpenHandler(({ url }) => { try { const target = new URL(url); if (target.protocol === "https:" && ["github.com", "openai.com", "modelscope.cn", "amap.com", "tavily.com", "rollinggo.cn"].some(host => target.hostname === host || target.hostname.endsWith("." + host))) void shell.openExternal(target.toString()); } catch {} return { action: "deny" }; });
     mainWindow.webContents.on("will-navigate", (event, url) => { try { if (new URL(url).protocol !== "file:") event.preventDefault(); } catch { event.preventDefault(); } });
     await mainWindow.loadFile(join(__dirname, "../renderer/index.html")); mainWindow.show();
     Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: "文件", submenu: [{ label: "导出备份", click: () => void exportBackup() }, { label: "导入备份", click: () => void importBackup() }, { type: "separator" }, { role: "quit", label: "退出" }] }, { label: "数据", submenu: [{ label: "打开数据目录", click: () => void shell.openPath(dirname(databasePath(app.getPath("userData")))) }] }, { label: "帮助", submenu: [{ label: "关于旅迹", click: () => void dialog.showMessageBox({ type: "info", title: "关于旅迹", message: `旅迹 ${app.getVersion()}`, detail: "Apache-2.0" }) }] }]));
-    app.on("before-quit", () => { server.close(); closeDesktopDatabase(); });
+    app.on("window-all-closed", shutdown);
+    app.on("before-quit", () => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      server.closeAllConnections();
+      server.close();
+      closeDesktopDatabase();
+    });
   }).catch(error => { console.error("Desktop startup failed:", error instanceof Error ? error.message : "UNKNOWN"); app.quit(); });
-  app.on("window-all-closed", () => app.quit());
 }
