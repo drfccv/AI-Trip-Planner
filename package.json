@@ -18,7 +18,13 @@
     "desktop:dev": "pnpm desktop:build && cross-env DESKTOP_DEV=1 electron .",
     "desktop:build": "tsup && vite build --config vite.renderer.config.ts",
     "predesktop:package": "electron-rebuild -f -w better-sqlite3",
-    "desktop:package": "pnpm desktop:build && electron-builder --win nsis",
+    "desktop:package": "pnpm desktop:build && electron-builder",
+    "predesktop:package:win": "electron-rebuild -f -w better-sqlite3",
+    "desktop:package:win": "pnpm desktop:build && electron-builder --win nsis --x64",
+    "predesktop:package:mac": "electron-rebuild -f -w better-sqlite3",
+    "desktop:package:mac": "pnpm desktop:build && electron-builder --mac dmg --universal",
+    "predesktop:package:linux": "electron-rebuild -f -w better-sqlite3",
+    "desktop:package:linux": "pnpm desktop:build && electron-builder --linux AppImage deb --x64",
     "predesktop:test": "pnpm rebuild better-sqlite3",
     "desktop:test": "cross-env TSX_TSCONFIG_PATH=tsconfig.desktop-test.json tsx --test tests/*.desktop-test.mjs"
   },
@@ -71,7 +77,7 @@
   "build": {
     "appId": "com.drfccv.aitripplanner",
     "productName": "旅迹",
-    "artifactName": "旅迹-安装程序-${version}.${ext}",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**"
@@ -94,6 +100,21 @@
       "icon": "desktop/assets/icon.png",
       "target": [
         "nsis"
+      ]
+    },
+    "mac": {
+      "icon": "desktop/assets/icon.png",
+      "category": "public.app-category.travel",
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "icon": "desktop/assets/icon.png",
+      "category": "Utility",
+      "target": [
+        "AppImage",
+        "deb"
       ]
     },
     "nsis": {

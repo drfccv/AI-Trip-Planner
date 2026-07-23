@@ -198,7 +198,6 @@ export async function demoApi<T>(
     return {} as T;
   }
   if (url.pathname === "/api/ai/jobs" && method === "POST") {
-    const trip = all.find((item) => item.id === body.tripId);
     const now = new Date().toISOString();
     const job: DemoJob = {
       id: id(),

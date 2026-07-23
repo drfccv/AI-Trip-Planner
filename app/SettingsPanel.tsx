@@ -152,14 +152,25 @@ export function SettingsPanel({
   const [editing, setEditing] = useState<Server | null>(null);
   const [secret, setSecret] = useState("");
   const [formError, setFormError] = useState("");
-  const [ai, setAi] = useState({
-    provider: "openai-compatible",
-    baseUrl: "https://api.openai.com/v1",
-    model: "gpt-5-mini",
-    thinkingEnabled: false,
-    configured: false,
-    keyHint: "",
-  });
+  const [ai, setAi] = useState(
+    isDemo
+      ? {
+          provider: "deepseek",
+          baseUrl: "https://api.deepseek.com/v1",
+          model: "deepseek-v4-flash",
+          thinkingEnabled: false,
+          configured: true,
+          keyHint: "已配置",
+        }
+      : {
+          provider: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          model: "gpt-5-mini",
+          thinkingEnabled: false,
+          configured: false,
+          keyHint: "",
+        },
+  );
   const [aiKey, setAiKey] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [deleteScope, setDeleteScope] = useState<"trips" | "all" | null>(null);
@@ -188,17 +199,7 @@ export function SettingsPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [load]);
   useEffect(() => {
-    if (isDemo) {
-      setAi({
-        provider: "deepseek",
-        baseUrl: "https://api.deepseek.com/v1",
-        model: "deepseek-v4-flash",
-        thinkingEnabled: false,
-        configured: true,
-        keyHint: "已配置",
-      });
-      return;
-    }
+    if (isDemo) return;
     json("/api/ai/settings")
       .then((data) => setAi(data.settings))
       .catch(() => undefined);
