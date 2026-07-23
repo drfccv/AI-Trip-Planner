@@ -1,5 +1,5 @@
 {
-  "name": "lvji-ai-trip-planner",
+  "name": "lvji-travel",
   "version": "0.1.0",
   "description": "AI-assisted travel planning desktop application",
   "author": {
@@ -76,8 +76,8 @@
   },
   "type": "module",
   "build": {
-    "appId": "com.drfccv.aitripplanner",
-    "productName": "旅迹",
+    "appId": "com.drfccv.lvji",
+    "productName": "lvji",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": [
