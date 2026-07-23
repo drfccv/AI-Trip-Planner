@@ -131,7 +131,6 @@ pnpm build
 ```text
 app/                 页面、组件和 API Routes
 db/                  Drizzle Schema 与数据库入口
-drizzle/             数据库迁移
 lib/ai/              AI 规划、任务和意图分发
 lib/mcp/             MCP 注册、网关、安全与审计
 lib/trips/           行程序列化与操作规则
